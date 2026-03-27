@@ -1,6 +1,7 @@
 import background from "../../assets/background.png";
 import Navbar from "../../components/Navbar";
 import Hero from "../../components/Hero";
+import BestSeller from "../../components/BestSeller";
 import Categories from "../../components/Categories";
 
 function Home() {
@@ -18,6 +19,8 @@ function Home() {
         <Navbar />
         <Hero />
         <Categories />
+        <BestSeller />
+        
       </div>
     </div>
   );
