@@ -37,26 +37,7 @@ const products = [
 
 function BestSeller() {
   return (
-    <section className="relative w-full py-28 px-8 lg:px-20 bg-black min-h-screen">
-      
-      {/* Curved SVG Background Decoration */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <svg viewBox="0 0 1440 320" className="absolute top-10 left-0 w-full opacity-30 drop-shadow-[0_0_15px_rgba(212,175,55,0.3)]">
-          <path 
-            fill="none" 
-            stroke="#D4AF37" 
-            strokeWidth="2" 
-            d="M0,160 C320,300 420,0 800,90 C1180,180 1300,10 1440,120" 
-          />
-          <path 
-            fill="none" 
-            stroke="#D4AF37" 
-            strokeWidth="1" 
-            opacity="0.5"
-            d="M0,180 C300,320 450,-20 820,110 C1150,200 1280,30 1440,140" 
-          />
-        </svg>
-      </div>
+    <section className="relative w-full py-28 px-8 lg:px-20 min-h-screen">
 
       {/* Header Area */}
       <div className="relative z-10 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end mb-20">

@@ -1,0 +1,131 @@
+import React, { useState } from 'react';
+import watch1 from '../assets/latest1.png';
+import watch2 from '../assets/latest2.png';
+import watch3 from '../assets/latest3.png';
+
+const Eye = ({ size, className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const ShoppingCart = ({ size, className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="8" cy="21" r="1" />
+    <circle cx="19" cy="21" r="1" />
+    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+  </svg>
+);
+
+const Star = ({ size, className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+const watches = [
+  {
+    id: 1,
+    brand: 'ROLEX',
+    name: 'Royal Chronograph Gold',
+    price: '$12,000',
+    rating: '4.9',
+    reviews: '128',
+    image: watch1,
+  },
+  {
+    id: 2,
+    brand: 'ROLEX',
+    name: 'Submariner Black',
+    price: '$14,500',
+    rating: '4.8',
+    reviews: '92',
+    image: watch2,
+  },
+  {
+    id: 3,
+    brand: 'DUIZER',
+    name: 'Ocean Blue Master',
+    price: '$8,900',
+    rating: '4.7',
+    reviews: '104',
+    image: watch3,
+  }
+];
+
+function LatestArrivals() {
+
+  // We are forcing the first card to be in hover state based on the prompt implicitly, OR we just let the CSS handle the hover state for all.
+
+  // The Prompt says "Create that section.first cart show after hover situation". This might mean:
+  // "Make the first card permanently show the hover state" (for a demo), or
+  // "Implement the hover state to match what is shown in the first card".
+  // Using CSS group-hover is the best approach for this.
+
+  return (
+    <section className="py-20 px-8 relative w-full max-w-7xl mx-auto">
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16">
+        <div>
+          <h4 className="text-[#D4AF37] uppercase tracking-widest text-sm mb-2 font-serif">Just Landed</h4>
+          <h2 className="text-white text-4xl md:text-5xl font-serif tracking-wide">LATEST ARRIVALS</h2>
+          <div className="w-16 h-0.5 bg-[#D4AF37] mt-6"></div>
+        </div>
+        <div className="mt-8 md:mt-0 text-right">
+          <h3 className="text-[#D4AF37] text-xl font-serif tracking-[0.2em]">CHRONOS</h3>
+          <p className="text-white text-xs uppercase tracking-widest mt-1 opacity-80">Watches</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {watches.map((watch) => (
+          <div 
+            key={watch.id}
+            className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 bg-[#0a0a0a]/40 border border-gray-800 hover:border-[#D4AF37]"
+            style={{ aspectRatio: '3/4' }}
+          >
+            {/* Watch Image */}
+            <img 
+              src={watch.image} 
+              alt={watch.name}
+              className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+            />
+            
+            {/* Overlay Gradient on Hover */}
+            <div className="absolute inset-0 bg-black/40 transition-opacity duration-500 opacity-0 group-hover:opacity-100"></div>
+
+            {/* Quick View Button - Centered */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-all duration-500 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0">
+              <button className="flex items-center gap-2 px-6 py-2 rounded-full border border-[#D4AF37]/50 bg-black/30 backdrop-blur-sm text-white hover:bg-[#D4AF37]/20 transition-colors">
+                <Eye size={18} className="text-[#D4AF37]" />
+                <span className="text-sm font-medium">Quick View</span>
+              </button>
+            </div>
+
+            {/* Bottom Details Panel - Slides up on Hover */}
+            <div className="absolute bottom-0 left-0 right-0 p-5 rounded-2xl bg-black/60 backdrop-blur-md border border-transparent border-t-white/10 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-hover:border-[#D4AF37] transition-all duration-500">
+              <div className="flex justify-between items-start mb-1">
+                <h5 className="text-[#D4AF37] font-serif tracking-widest text-sm">{watch.brand}</h5>
+                <div className="flex items-center gap-1">
+                  <Star size={12} className="text-[#D4AF37] fill-[#D4AF37]" />
+                  <span className="text-white text-xs">{watch.rating}({watch.reviews})</span>
+                </div>
+              </div>
+              <p className="text-white/90 text-md font-medium mb-3">{watch.name}</p>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-white text-lg font-bold">{watch.price}</span>
+                <button className="w-10 h-10 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors">
+                  <ShoppingCart size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default LatestArrivals;
