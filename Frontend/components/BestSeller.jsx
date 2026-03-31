@@ -1,9 +1,9 @@
 import React from 'react';
 
 // Using available assets for demo
-import watch1 from '../assets/Heroimg1.png';
-import watch2 from '../assets/heroimage2.png';
-import watch3 from '../assets/heroimage3.png';
+import watch1 from '../assets/images/hero/Heroimg1.png';
+import watch2 from '../assets/images/hero/heroimage2.png';
+import watch3 from '../assets/images/hero/heroimage3.png';
 
 const products = [
   {

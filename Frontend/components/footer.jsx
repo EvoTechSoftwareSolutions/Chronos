@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import footerBg from '../assets/footer.png';
-import logo from '../assets/logo.png';
-import fbIcon from '../assets/fb.png';
-import instaIcon from '../assets/intra.png';
-import tiktokIcon from '../assets/ticktok.png';
+import footerBg from '../assets/images/ui/footer.png';
+import logo from '../assets/images/ui/logo.png';
+import fbIcon from '../assets/icons/social/fb.png';
+import instaIcon from '../assets/icons/social/intra.png';
+import tiktokIcon from '../assets/icons/social/ticktok.png';
 
 const MailIcon = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>

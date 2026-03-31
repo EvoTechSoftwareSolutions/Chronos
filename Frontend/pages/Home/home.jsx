@@ -1,4 +1,4 @@
-import background from "../../assets/background.png";
+import background from "../../assets/images/ui/background.png";
 import Navbar from "../../components/Navbar";
 import Hero from "../../components/Hero";
 import LatestArrivals from "../../components/LatestArrivals";

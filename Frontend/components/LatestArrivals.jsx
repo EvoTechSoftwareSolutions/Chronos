@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import watch1 from '../assets/latest1.png';
-import watch2 from '../assets/latest2.png';
-import watch3 from '../assets/latest3.png';
+import watch1 from '../assets/images/products/latest1.png';
+import watch2 from '../assets/images/products/latest2.png';
+import watch3 from '../assets/images/products/latest3.png';
 
 const Eye = ({ size, className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>

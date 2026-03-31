@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/images/ui/logo.png";
 
 function Register() {
 
