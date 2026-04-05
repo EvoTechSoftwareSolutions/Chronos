@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useGoogleLogin } from "@react-oauth/google";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/images/ui/logo.png";
 
 function Login() {
 
@@ -183,6 +183,13 @@ function Login() {
             Don't have an account?{" "}
             <span onClick={() => navigate("/")} className="cursor-pointer text-white">
               Sign Up
+            </span>
+          </p>
+
+          <p className="text-gray-400 text-sm text-center mt-10">
+            If you are an admin you can login here :{" "}
+            <span onClick={() => navigate("/admin-login")} className="cursor-pointer text-white">
+              Login
             </span>
           </p>
 

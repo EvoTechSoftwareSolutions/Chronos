@@ -1,0 +1,50 @@
+/* ── Scroll To Top Button ── */
+.scroll-to-top-wrapper {
+  position: absolute;
+  right: 100px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.scroll-to-top-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 1.5px solid #D4AF37;
+  background: rgba(30, 25, 15, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  outline: none;
+  padding: 0;
+}
+
+.scroll-to-top-btn:hover {
+  width: 78px;
+  height: 78px;
+  background: rgba(212, 175, 55, 0.15);
+  border-color: #D4AF37;
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.2);
+}
+
+.scroll-to-top-btn:active {
+  transform: scale(0.9);
+  transition: transform 0.12s ease;
+}
+
+.scroll-arrow-icon {
+  width: 26px;
+  height: 26px;
+  color: #D4AF37;
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.scroll-to-top-btn:hover .scroll-arrow-icon {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.5));
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import heroBg from '../assets/hero-bg.png';
+import heroBg from '../assets/images/hero/hero-bg.png';
 
 function Hero() {
   const [targetDate, setTargetDate] = useState(() => {
@@ -12,7 +12,7 @@ function Hero() {
   const watches = [
     {
       id: 1,
-      image: "../assets/Heroimg1.png",
+      image: "../assets/images/hero/Heroimg1.png",
       imagePlaceholder: "Watch 1 Image",
       badgePrefix: "LATEST",
       badgeSuffix: "ARRIVAL",
@@ -20,7 +20,7 @@ function Hero() {
     },
     {
       id: 2,
-      image: "../assets/heroimage2.png",
+      image: "../assets/images/hero/heroimage2.png",
       imagePlaceholder: "Watch 2 Image",
       badgePrefix: "POPULAR",
       badgeSuffix: "WATCH",
@@ -28,7 +28,7 @@ function Hero() {
     },
     {
       id: 3,
-      image: "../assets/heroimage3.png",
+      image: "../assets/images/hero/heroimage3.png",
       imagePlaceholder: "Watch 3 Image",
       badgePrefix: "BEST",
       badgeSuffix: "SELLING",
