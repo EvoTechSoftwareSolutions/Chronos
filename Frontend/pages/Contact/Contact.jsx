@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-import React, { useState } from 'react';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
-import ScrollToTopButton from '../../components/ScrollToTopButton';
-import './Contact.css'; 
-import tissotLogo from '../../assets/images/ui/tissot.png';
-import rolexLogo from '../../assets/images/ui/rolex.png';
-import omegaLogo from '../../assets/images/ui/omega.png';
-import casioLogo from '../../assets/images/ui/casio.png';
-import contactImg from '../../assets/images/ui/contactimg.jpg';
-import wavesBg from '../../assets/images/ui/Waves.png';
-=======
 import React, { useState, useRef } from 'react';
 import emailjs from '@emailjs/browser';
 import Navbar from '../../components/Navbar';
@@ -18,7 +5,6 @@ import Footer from '../../components/Footer';
 import ScrollToTopButton from '../../components/ScrollToTopButton';
 import './Contact.css';
 import backgroundImg from '../../assets/images/ui/background.png';
->>>>>>> dev/dilsara
 
 function Contact() {
   const [activeFaq, setActiveFaq] = useState(0);
@@ -46,8 +32,6 @@ function Contact() {
     }
   ];
 
-<<<<<<< HEAD
-=======
   const form = useRef();
   const [submitStatus, setSubmitStatus] = useState(null); // 'loading', 'success', 'error'
   const [errorMsg, setErrorMsg] = useState('');
@@ -72,23 +56,10 @@ function Contact() {
       });
   };
 
->>>>>>> dev/dilsara
   const toggleFaq = (index) => {
     setActiveFaq(activeFaq === index ? null : index);
   };
 
-<<<<<<< HEAD
-  const logos = [tissotLogo, rolexLogo, omegaLogo, casioLogo, tissotLogo, rolexLogo, omegaLogo, casioLogo];
-
-  return (
-    <div className="contact-container min-h-screen text-white font-poppins relative">
-      <Navbar />
-      
-      <div className="waves-overlay"></div>
-
-      <div className="contact-hero-bg">
-        <img src={contactImg} alt="contact-img" />
-=======
   const logos = [backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg];
 
   return (
@@ -99,7 +70,6 @@ function Contact() {
 
       <div className="contact-hero-bg">
         <img src={backgroundImg} alt="contact-img" />
->>>>>>> dev/dilsara
         <div className="hero-titles">
           <h4 className="get-in-touch">Get In Touch</h4>
           <h1 className="contact-us">Contact Us</h1>
@@ -118,39 +88,6 @@ function Contact() {
             <h2 className="text-3xl font-serif text-white mb-8 tracking-wider uppercase">Send A Message</h2>
             <div className="w-12 h-[1px] bg-[#D4AF37] mb-10"></div>
             
-<<<<<<< HEAD
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="contact-label">First Name</label>
-                  <input type="text" className="contact-input" placeholder="First Name" />
-                </div>
-                <div>
-                  <label className="contact-label">Last Name</label>
-                  <input type="text" className="contact-input" placeholder="Last Name" />
-                </div>
-              </div>
-              
-              <div>
-                <label className="contact-label">Email Address</label>
-                <input type="email" className="contact-input" placeholder="Email Address" />
-              </div>
-              
-              <div>
-                <label className="contact-label">Phone Number</label>
-                <input type="tel" className="contact-input" placeholder="Phone Number" />
-              </div>
-              
-              <div>
-                <label className="contact-label">Message</label>
-                <textarea className="contact-input" rows="4" placeholder="Message"></textarea>
-              </div>
-              
-              <button type="submit" className="contact-submit-btn">
-                Send Message
-              </button>
-            </form>
-=======
             {submitStatus === 'success' ? (
               <div className="flex flex-col items-center justify-center p-12 py-16 bg-[#111111]/80 backdrop-blur-md rounded-2xl border border-[#D4AF37]/30 text-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-20 h-20 text-[#D4AF37] mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,7 +154,6 @@ function Contact() {
                 </button>
               </form>
             )}
->>>>>>> dev/dilsara
           </div>
 
         
