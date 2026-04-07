@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import watch1 from '../assets/images/products/latest1.png';
-import watch2 from '../assets/images/products/latest2.png';
-import watch3 from '../assets/images/products/latest3.png';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 
 const Eye = ({ size, className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -24,44 +23,59 @@ const Star = ({ size, className }) => (
   </svg>
 );
 
-const watches = [
-  {
-    id: 1,
-    brand: 'ROLEX',
-    name: 'Royal Chronograph Gold',
-    price: '$12,000',
-    rating: '4.9',
-    reviews: '128',
-    image: watch1,
-  },
-  {
-    id: 2,
-    brand: 'ROLEX',
-    name: 'Submariner Black',
-    price: '$14,500',
-    rating: '4.8',
-    reviews: '92',
-    image: watch2,
-  },
-  {
-    id: 3,
-    brand: 'DUIZER',
-    name: 'Ocean Blue Master',
-    price: '$8,900',
-    rating: '4.7',
-    reviews: '104',
-    image: watch3,
-  }
-];
-
 function LatestArrivals() {
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const [watches, setWatches] = useState([]);
 
-  // We are forcing the first card to be in hover state based on the prompt implicitly, OR we just let the CSS handle the hover state for all.
+  useEffect(() => {
+     fetch('http://localhost:5000/api/products')
+      .then(res => res.json())
+      .then(data => {
+         const parsed = data.slice(0, 3).map((p, i) => {
+             let imgList = [];
+             try { imgList = JSON.parse(p.images); } catch(e){}
+             return {
+                id: p.id,
+                brand: p.brand,
+                name: p.name,
+                price: String(p.price),
+                rating: '4.9',
+                reviews: '128',
+                image: imgList[0] ? `http://localhost:5000${imgList[0]}` : p.image_url ? `http://localhost:5000${p.image_url}` : "",
+             };
+         });
+         setWatches(parsed);
+      })
+      .catch(console.error);
+  }, []);
 
-  // The Prompt says "Create that section.first cart show after hover situation". This might mean:
-  // "Make the first card permanently show the hover state" (for a demo), or
-  // "Implement the hover state to match what is shown in the first card".
-  // Using CSS group-hover is the best approach for this.
+  const handleQuickView = (e, watch) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/product/luxury/${watch.id}`);
+  };
+
+  const handleAddToCart = (e, watch) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Safety fallback for priceNum parsing to support older dummy data "$120.00"
+    const priceNum = parseFloat(watch.price.replace(/[,\$]/g, '')) || 0;
+
+    addToCart({
+      id: watch.id,
+      category: 'luxury', 
+      brand: watch.brand,
+      name: watch.name,
+      price: watch.price,
+      priceNum: priceNum,
+      image: watch.image,
+      color: 'Standard',
+      size: 'Default',
+      quantity: 1
+    });
+  };
 
   return (
     <section className="py-20 px-8 relative w-full max-w-7xl mx-auto">
@@ -97,7 +111,10 @@ function LatestArrivals() {
 
             {/* Quick View Button - Centered */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-all duration-500 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0">
-              <button className="flex items-center gap-2 px-6 py-2 rounded-full border border-[#D4AF37]/50 bg-black/30 backdrop-blur-sm text-white hover:bg-[#D4AF37]/20 transition-colors">
+              <button 
+                onClick={(e) => handleQuickView(e, watch)}
+                className="flex items-center gap-2 px-6 py-2 rounded-full border border-[#D4AF37]/50 bg-black/30 backdrop-blur-sm text-white hover:bg-[#D4AF37]/20 transition-colors"
+              >
                 <Eye size={18} className="text-[#D4AF37]" />
                 <span className="text-sm font-medium">Quick View</span>
               </button>
@@ -116,7 +133,10 @@ function LatestArrivals() {
               
               <div className="flex justify-between items-center">
                 <span className="text-white text-lg font-bold">{watch.price}</span>
-                <button className="w-10 h-10 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors">
+                <button 
+                  onClick={(e) => handleAddToCart(e, watch)}
+                  className="w-10 h-10 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors"
+                >
                   <ShoppingCart size={18} />
                 </button>
               </div>

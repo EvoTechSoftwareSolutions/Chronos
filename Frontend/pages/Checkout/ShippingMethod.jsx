@@ -11,9 +11,9 @@ import rImg2 from '../../assets/images/products/latest2.png';
 import rImg3 from '../../assets/images/products/latest3.png';
 
 const RELATED = [
-  { id: 'r1', brand: 'ROLEX', name: 'Submariner Black',       priceNum: 8000,  image: rImg1 },
-  { id: 'r2', brand: 'ROLEX', name: 'Royal Chronograph Gold', priceNum: 11000, image: rImg2 },
-  { id: 'r3', brand: 'OMEGA', name: 'Ocean Blue Master',      priceNum: 9800,  image: rImg3 },
+  { id: 'r1', brand: 'ROLEX', name: 'Submariner Black',       priceNum: 80,  image: rImg1 },
+  { id: 'r2', brand: 'ROLEX', name: 'Royal Chronograph Gold', priceNum: 110, image: rImg2 },
+  { id: 'r3', brand: 'OMEGA', name: 'Ocean Blue Master',      priceNum: 98,  image: rImg3 },
 ];
 
 const SHIPPING_METHODS = [
@@ -74,7 +74,7 @@ function ShippingMethod() {
   const [error, setError] = useState('');
 
   const subtotal = cartItems.reduce((s, i) => {
-    const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/,/g, '')) || 0;
+    const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
     return s + price * i.quantity;
   }, 0);
   const discountAmt = Math.round(subtotal * 0.15);
@@ -202,7 +202,7 @@ function ShippingMethod() {
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest truncate w-40">{item.name}</p>
                         <p className="text-[10px] text-gray-500 mt-1">Qty: {item.quantity}</p>
                       </div>
-                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/,/g,''))) * item.quantity)}</span>
+                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
                     </div>
                   ))}
                 </div>

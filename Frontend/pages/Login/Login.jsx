@@ -32,6 +32,7 @@ function Login() {
       const res = await axios.post("http://localhost:5000/login", formData);
 
       if (res.data.success) {
+        localStorage.setItem("user", JSON.stringify(res.data.user || { email: formData.email }));
         setMessage("Login successful");
         setIsSuccess(true);
 
@@ -188,7 +189,7 @@ function Login() {
 
           <p className="text-gray-400 text-sm text-center mt-10">
             If you are an admin you can login here :{" "}
-            <span onClick={() => navigate("/admin-login")} className="cursor-pointer text-white">
+            <span onClick={() => window.location.href = "http://localhost:5174/"} className="cursor-pointer text-white">
               Login
             </span>
           </p>

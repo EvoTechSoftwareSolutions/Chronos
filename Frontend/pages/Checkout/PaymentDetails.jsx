@@ -16,9 +16,9 @@ import rImg2 from '../../assets/images/products/latest2.png';
 import rImg3 from '../../assets/images/products/latest3.png';
 
 const RELATED = [
-  { id: 'r1', brand: 'ROLEX', name: 'Submariner Black',       priceNum: 8000,  image: rImg1 },
-  { id: 'r2', brand: 'ROLEX', name: 'Royal Chronograph Gold', priceNum: 11000, image: rImg2 },
-  { id: 'r3', brand: 'OMEGA', name: 'Ocean Blue Master',      priceNum: 9800,  image: rImg3 },
+  { id: 'r1', brand: 'ROLEX', name: 'Submariner Black',       priceNum: 80,  image: rImg1 },
+  { id: 'r2', brand: 'ROLEX', name: 'Royal Chronograph Gold', priceNum: 110, image: rImg2 },
+  { id: 'r3', brand: 'OMEGA', name: 'Ocean Blue Master',      priceNum: 98,  image: rImg3 },
 ];
 
 function fmt(n) {
@@ -51,7 +51,7 @@ function PaymentDetails() {
   const [error, setError] = useState('');
 
   const subtotal = cartItems.reduce((s, i) => {
-    const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/,/g, '')) || 0;
+    const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
     return s + price * i.quantity;
   }, 0);
   const discountAmt = Math.round(subtotal * 0.15);
@@ -62,15 +62,31 @@ function PaymentDetails() {
     setCardData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handlePlaceOrder = async () => {
-    // Simple validation for card data
-    if (paymentMethod === 'Credit/Debit') {
-      if (!cardData.cardNumber || !cardData.expiry || !cardData.cvc || !cardData.cardName) {
-        setError("Please fill in all card details.");
-        return;
-      }
-    }
+  const [successMsg, setSuccessMsg] = useState('');
 
+  const [relatedProducts, setRelatedProducts] = useState([]);
+
+  React.useEffect(() => {
+    axios.get('http://localhost:5000/api/products')
+      .then(res => {
+        const all = res.data;
+        const filtered = all.slice(0, 3).map(p => {
+          let imgs = [];
+          try { 
+            const parsed = JSON.parse(p.images); 
+            if (Array.isArray(parsed)) imgs = parsed;
+          } catch(e){}
+          return {
+            ...p,
+            image: (imgs && imgs[0]) ? `http://localhost:5000${imgs[0]}` : p.image_url ? `http://localhost:5000${p.image_url}` : null
+          };
+        });
+        setRelatedProducts(filtered);
+      })
+      .catch(console.error);
+  }, []);
+
+  const handlePlaceOrder = async () => {
     setLoading(true);
     setError('');
 
@@ -79,7 +95,7 @@ function PaymentDetails() {
         items: cartItems.map((item) => ({
           brand: item.brand,
           name: item.name,
-          price: typeof item.priceNum === 'number' ? item.priceNum : parseFloat(String(item.price ?? '0').replace(/,/g, '')),
+          price: typeof item.priceNum === 'number' ? item.priceNum : parseFloat(String(item.price ?? '0').replace(/[^0-9.]/g, '')),
           color: item.color,
           size: item.size ?? 'M',
           quantity: item.quantity,
@@ -95,15 +111,75 @@ function PaymentDetails() {
       const res = await axios.post('http://localhost:5000/checkout', payload);
       
       if (res.data.success) {
-        clearCart();
-        alert("Order placed successfully! Order ID: " + res.data.orderId);
-        navigate('/home');
+        const orderId = res.data.orderId;
+
+        if (paymentMethod === 'Credit/Debit') {
+          // Fetch PayHere Hash
+          const hashRes = await axios.post('http://localhost:5000/generate-payhere-hash', {
+            order_id: orderId,
+            amount: total,
+            currency: 'USD'
+          });
+
+          const { hash, merchant_id } = hashRes.data;
+
+          // Initialize PayHere payment
+          const payment = {
+            sandbox: true,
+            merchant_id: merchant_id,
+            return_url: "http://localhost:5173/home", 
+            cancel_url: "http://localhost:5173/checkout/payment-details",
+            notify_url: "http://localhost:5000/payhere-notify",
+            order_id: String(orderId),
+            items: "Chronos Luxury Watches Order #" + orderId,
+            amount: Number(total).toFixed(2),
+            currency: "USD",
+            hash: hash,
+            first_name: shippingDetails?.firstName || "Guest",
+            last_name: shippingDetails?.lastName || "Customer",
+            email: shippingDetails?.email || "customer@example.com",
+            phone: shippingDetails?.mobile || "",
+            address: shippingDetails?.address || "",
+            city: shippingDetails?.city || "",
+            country: "Sri Lanka",
+          };
+
+          window.payhere.onCompleted = function onCompleted(orderId) {
+            // Update status in DB as well (fallback for local webhook issues)
+            axios.post('http://localhost:5000/api/orders/update-payment-status', {
+               orderId: orderId,
+               status: 'Paid'
+            }).catch(console.error);
+
+            clearCart();
+            setLoading(false);
+            navigate(`/checkout/success/${orderId}`);
+          };
+          window.payhere.onDismissed = function onDismissed() {
+            setError("Payment dismissed. Your order is pending payment. Please try again.");
+            setLoading(false);
+          };
+          window.payhere.onError = function onError(error) {
+            setError("Payment error: " + error);
+            setLoading(false);
+          };
+
+          window.payhere.startPayment(payment);
+
+        } else {
+          clearCart();
+          setSuccessMsg("Order placed successfully! Order ID: " + orderId);
+          setLoading(false);
+        }
+
       } else {
         setError(res.data.message || "Order placement failed.");
+        setLoading(false);
       }
     } catch (err) {
-      setError("Server error. Please try again.");
-    } finally {
+      console.error("Checkout Error:", err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || "Server error. Please try again.";
+      setError(msg);
       setLoading(false);
     }
   };
@@ -145,6 +221,21 @@ function PaymentDetails() {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 md:px-16 pb-20">
+          {successMsg ? (
+            <div className="flex flex-col items-center justify-center py-24 mb-10 border border-[#D4AF37]/30 bg-[#111111]/80 rounded-2xl">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-[#D4AF37] mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h2 className="text-[#D4AF37] text-3xl font-playfair tracking-widest uppercase mb-4 text-center px-4">{successMsg}</h2>
+              <p className="text-gray-400 text-sm tracking-wide mb-10 text-center max-w-md px-4">An order confirmation email has been dispatched. Thank you for shopping with Chronos Luxury Watches.</p>
+              <button 
+                onClick={() => navigate('/home')}
+                className="px-10 py-4 border border-[#D4AF37] text-[#D4AF37] font-semibold rounded-full uppercase tracking-widest text-xs hover:bg-[#D4AF37] hover:text-black transition-all"
+              >
+                Return to Collection
+              </button>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[60%_35%] gap-12 items-start">
             
             {/* LEFT — Payment Details Form */}
@@ -181,39 +272,37 @@ function PaymentDetails() {
                 ))}
               </div>
 
-              {/* Card Form */}
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase tracking-widest text-gray-500">Card number</label>
-                    <input 
-                      type="text" name="cardNumber" value={cardData.cardNumber} onChange={handleInputChange}
-                      placeholder="XXXX XXXX XXXX XXXX" className="w-full bg-transparent border border-[#2a2a2a] focus:border-[#D4AF37] py-4 px-5 rounded-lg outline-none transition-colors text-sm font-light tracking-[0.2em]"
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase tracking-widest text-gray-500">MM / YY</label>
-                    <input 
-                      type="text" name="expiry" value={cardData.expiry} onChange={handleInputChange}
-                      placeholder="MM / YY" className="w-full bg-transparent border border-[#2a2a2a] focus:border-[#D4AF37] py-4 px-5 rounded-lg outline-none transition-colors text-sm font-light tracking-[0.2em]"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase tracking-widest text-gray-500">CVC</label>
-                    <input 
-                      type="password" name="cvc" value={cardData.cvc} onChange={handleInputChange}
-                      placeholder="CVC" className="w-full bg-transparent border border-[#2a2a2a] focus:border-[#D4AF37] py-4 px-5 rounded-lg outline-none transition-colors text-sm font-light tracking-[0.2em]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase tracking-widest text-gray-500">Name of card</label>
-                    <input 
-                      type="text" name="cardName" value={cardData.cardName} onChange={handleInputChange}
-                      placeholder="NAME ON CARD" className="w-full bg-transparent border border-[#2a2a2a] focus:border-[#D4AF37] py-4 px-5 rounded-lg outline-none transition-colors text-sm font-light tracking-[0.2em] uppercase"
-                    />
+              {/* Secure Payment Summary */}
+              <div className="flex flex-col gap-6 mt-4">
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center border border-[#2a2a2a] rounded-xl bg-[#151515] relative overflow-hidden group">
+                  {/* Subtle Background Glow */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#D4AF37]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  {paymentMethod === 'Credit/Debit' ? (
+                    <>
+                      <img src={creditLogo} alt="Credit Card" className="h-10 mb-6 opacity-80 mix-blend-lighten drop-shadow-[0_0_15px_rgba(212,175,55,0.2)]" />
+                      <h3 className="text-[#D4AF37] font-playfair tracking-widest uppercase mb-3 text-lg">Secure Gateway</h3>
+                      <p className="text-gray-400 text-xs tracking-wider leading-relaxed max-w-[280px]">
+                        You will be securely redirected to PayHere's encrypted portal to complete your transaction without storing any card details on our servers.
+                      </p>
+                    </>
+                  ) : paymentMethod === 'Apple pay' ? (
+                    <>
+                      <img src={applePayLogo} alt="Apple Pay" className="h-12 mb-6 opacity-80 mix-blend-lighten drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
+                      <h3 className="text-white font-playfair tracking-widest uppercase mb-3 text-lg">Apple Pay Check</h3>
+                      <p className="text-gray-400 text-xs tracking-wider leading-relaxed max-w-[280px]">
+                        Complete your purchase instantly using Apple Pay. Please make sure you have an active Apple Wallet configuration.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <img src={paypalLogo} alt="PayPal" className="h-12 mb-6 opacity-90 mix-blend-lighten drop-shadow-[0_0_15px_rgba(0,112,186,0.2)]" />
+                      <h3 className="text-blue-400 font-playfair tracking-widest uppercase mb-3 text-lg">PayPal Checkout</h3>
+                      <p className="text-gray-400 text-xs tracking-wider leading-relaxed max-w-[280px]">
+                        You will be redirected to PayPal's secure login environment to approve the final amount and review payment resources.
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-4 mt-8">
@@ -228,7 +317,7 @@ function PaymentDetails() {
                     disabled={loading}
                     className="flex-[2] bg-[#D4AF37] text-black font-semibold py-4 rounded-lg uppercase tracking-[0.2em] text-sm hover:bg-[#c9a430] transition-all disabled:opacity-50"
                   >
-                    {loading ? 'Processing...' : 'Place order'}
+                    {loading ? 'Processing...' : `Pay With ${paymentMethod}`}
                   </button>
                 </div>
               </div>
@@ -250,7 +339,7 @@ function PaymentDetails() {
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest truncate w-40">{item.name}</p>
                         <p className="text-[10px] text-gray-500 mt-1">Qty: {item.quantity}</p>
                       </div>
-                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/,/g,''))) * item.quantity)}</span>
+                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -280,6 +369,7 @@ function PaymentDetails() {
             </div>
 
           </div>
+          )}
         </div>
 
         {/* RELATED SECTION */}
@@ -290,8 +380,8 @@ function PaymentDetails() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {RELATED.map((p) => (
-              <div key={p.id} className="group bg-[#111111] rounded-xl border border-[#2a2a2a] hover:border-[#D4AF37] transition-all duration-500 overflow-hidden cursor-pointer">
+            {relatedProducts.map((p) => (
+              <div key={p.id} onClick={() => navigate(`/product/${(p.category || 'luxury').toLowerCase()}/${p.id}`)} className="group bg-[#111111] rounded-xl border border-[#2a2a2a] hover:border-[#D4AF37] transition-all duration-500 overflow-hidden cursor-pointer">
                 <div className="aspect-square bg-[#181818] overflow-hidden relative">
                   <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -301,7 +391,7 @@ function PaymentDetails() {
                   <div className="w-full h-px bg-[#D4AF37]/30 mb-4" />
                   <h4 className="text-white text-[13px] font-normal uppercase tracking-widest leading-snug mb-4 h-10 overflow-hidden">{p.name}</h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-white text-sm font-semibold tracking-wide">$ {fmt(p.priceNum)}</span>
+                    <span className="text-white text-sm font-semibold tracking-wide">$ {fmt(p.price || p.priceNum || 0)}</span>
                     <button className="w-9 h-9 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all">
                       <CartBtnIcon />
                     </button>

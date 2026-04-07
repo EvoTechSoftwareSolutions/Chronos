@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/images/ui/logo.png';
 import { useCart } from '../context/CartContext';
 
@@ -7,6 +7,7 @@ function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
   const { cartCount } = useCart();
 
   const navLinks = [
@@ -20,40 +21,12 @@ function Navbar() {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     
-    const query = searchQuery.toLowerCase();
-    
-    // Search mapping
-    let targetId = null;
-    if (query.includes('rolex') || query.includes('omega') || query.includes('hk') || query.includes('hero') || query.includes('latest') || query.includes('best selling')) {
-      targetId = 'hero-watches';
-    } else if (query.includes('luxury')) {
-      targetId = 'category-luxury';
-    } else if (query.includes('sport')) {
-      targetId = 'category-sport';
-    } else if (query.includes('analog')) {
-      targetId = 'category-analog';
-    } else if (query.includes('smart')) {
-      targetId = 'category-smart';
-    } else if (query.includes('watch') || query.includes('collection') || query.includes('chronos')) {
-      targetId = 'categories-section';
-    }
-
-    if (targetId) {
-      const element = document.getElementById(targetId);
-      if (element) {
-        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-        // Scroll with an offset for the fixed navbar
-        window.scrollTo({
-          top: elementPosition - 120,
-          behavior: 'smooth'
-        });
-      }
-    }
-    
-    // Close search after submit
+    // Pass query securely to the dynamic Collection endpoint
     setIsSearchOpen(false);
+    navigate(`/collection?search=${encodeURIComponent(searchQuery.trim())}`);
     setSearchQuery('');
   };
+
   return (
     <nav className="fixed top-0 left-0 w-full z-50 py-6 px-16 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/10 transition-all duration-300">
       {/* Logo */}
