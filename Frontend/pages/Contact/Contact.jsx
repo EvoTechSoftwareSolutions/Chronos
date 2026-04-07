@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -9,6 +10,15 @@ import omegaLogo from '../../assets/images/ui/omega.png';
 import casioLogo from '../../assets/images/ui/casio.png';
 import contactImg from '../../assets/images/ui/contactimg.jpg';
 import wavesBg from '../../assets/images/ui/Waves.png';
+=======
+import React, { useState, useRef } from 'react';
+import emailjs from '@emailjs/browser';
+import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
+import ScrollToTopButton from '../../components/ScrollToTopButton';
+import './Contact.css';
+import backgroundImg from '../../assets/images/ui/background.png';
+>>>>>>> dev/dilsara
 
 function Contact() {
   const [activeFaq, setActiveFaq] = useState(0);
@@ -36,10 +46,38 @@ function Contact() {
     }
   ];
 
+<<<<<<< HEAD
+=======
+  const form = useRef();
+  const [submitStatus, setSubmitStatus] = useState(null); // 'loading', 'success', 'error'
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const sendEmail = (e) => {
+    e.preventDefault();
+    setSubmitStatus('loading');
+
+    // 1. Send the inquiry to the company inbox
+    const sendCompanyDetails = emailjs.sendForm('service_s32i6fn', 'template_alznjaq', form.current, 'jRpr4VVc-GA7LLA3Z');
+    
+    // 2. Send the "thank you" auto-reply directly to the customer
+    const sendCustomerThanks = emailjs.sendForm('service_s32i6fn', 'template_ndmi7q4', form.current, 'jRpr4VVc-GA7LLA3Z');
+
+    Promise.all([sendCompanyDetails, sendCustomerThanks])
+      .then((results) => {
+          setSubmitStatus('success');
+      })
+      .catch((error) => {
+          setSubmitStatus('error');
+          setErrorMsg(error.text || 'Failed to dispatch emails.');
+      });
+  };
+
+>>>>>>> dev/dilsara
   const toggleFaq = (index) => {
     setActiveFaq(activeFaq === index ? null : index);
   };
 
+<<<<<<< HEAD
   const logos = [tissotLogo, rolexLogo, omegaLogo, casioLogo, tissotLogo, rolexLogo, omegaLogo, casioLogo];
 
   return (
@@ -50,6 +88,18 @@ function Contact() {
 
       <div className="contact-hero-bg">
         <img src={contactImg} alt="contact-img" />
+=======
+  const logos = [backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg];
+
+  return (
+    <div className="contact-container min-h-screen text-white relative">
+      <Navbar />
+
+      <div className="waves-overlay"></div>
+
+      <div className="contact-hero-bg">
+        <img src={backgroundImg} alt="contact-img" />
+>>>>>>> dev/dilsara
         <div className="hero-titles">
           <h4 className="get-in-touch">Get In Touch</h4>
           <h1 className="contact-us">Contact Us</h1>
@@ -68,6 +118,7 @@ function Contact() {
             <h2 className="text-3xl font-serif text-white mb-8 tracking-wider uppercase">Send A Message</h2>
             <div className="w-12 h-[1px] bg-[#D4AF37] mb-10"></div>
             
+<<<<<<< HEAD
             <form className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -99,6 +150,74 @@ function Contact() {
                 Send Message
               </button>
             </form>
+=======
+            {submitStatus === 'success' ? (
+              <div className="flex flex-col items-center justify-center p-12 py-16 bg-[#111111]/80 backdrop-blur-md rounded-2xl border border-[#D4AF37]/30 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-20 h-20 text-[#D4AF37] mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
+                </svg>
+                <h3 className="text-[#D4AF37] font-playfair text-2xl tracking-widest uppercase mb-4">Inquiry Received</h3>
+                <p className="text-gray-400 text-sm leading-relaxed max-w-sm tracking-wide">
+                  Thank you for reaching out to Chronos. One of our dedicated luxury watch consultants will contact you shortly to address your inquiry.
+                </p>
+                <button 
+                  onClick={() => setSubmitStatus(null)} 
+                  className="mt-10 border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black font-semibold uppercase tracking-widest text-xs px-8 py-3 rounded-full transition-all duration-300"
+                >
+                  Send Another Message
+                </button>
+              </div>
+            ) : (
+              <form ref={form} onSubmit={sendEmail} className="space-y-6">
+                {submitStatus === 'error' && (
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm mb-4">
+                    Error sending message: {errorMsg}. Please try checking your EmailJS configuration!
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="contact-label">First Name</label>
+                    <input type="text" name="firstName" className="contact-input" placeholder="First Name" required />
+                  </div>
+                  <div>
+                    <label className="contact-label">Last Name</label>
+                    <input type="text" name="lastName" className="contact-input" placeholder="Last Name" required />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="contact-label">Email Address</label>
+                  <input type="email" name="email" className="contact-input" placeholder="Email Address" required />
+                </div>
+                
+                <div>
+                  <label className="contact-label">Phone Number</label>
+                  <input type="tel" name="phone" className="contact-input" placeholder="Phone Number" />
+                </div>
+                
+                <div>
+                  <label className="contact-label">Message</label>
+                  <textarea name="message" className="contact-input" rows="4" placeholder="Your Message" required></textarea>
+                </div>
+                
+                <button 
+                  type="submit" 
+                  disabled={submitStatus === 'loading'}
+                  className="contact-submit-btn flex items-center justify-center gap-2"
+                >
+                  {submitStatus === 'loading' ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    'Send Message'
+                  )}
+                </button>
+              </form>
+            )}
+>>>>>>> dev/dilsara
           </div>
 
         

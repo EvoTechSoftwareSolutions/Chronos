@@ -5,16 +5,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useCart } from '../../context/CartContext';
 
-// ─── Related products (Same as Cart for consistency) ─────────────────────────
-import rImg1 from '../../assets/images/products/latest1.png';
-import rImg2 from '../../assets/images/products/latest2.png';
-import rImg3 from '../../assets/images/products/latest3.png';
-
-const RELATED = [
-  { id: 'r1', brand: 'ROLEX', name: 'Submariner Black',       priceNum: 8000,  image: rImg1 },
-  { id: 'r2', brand: 'ROLEX', name: 'Royal Chronograph Gold', priceNum: 11000, image: rImg2 },
-  { id: 'r3', brand: 'OMEGA', name: 'Ocean Blue Master',      priceNum: 9800,  image: rImg3 },
-];
+// dynamically loading data
 
 function fmt(n) {
   return Number(n).toLocaleString('en-US');
@@ -33,22 +24,46 @@ function CartBtnIcon() {
 function ShippingDetails() {
   const { cartItems, setShippingDetails, shippingDetails } = useCart();
   const navigate = useNavigate();
+  const [related, setRelated] = useState([]);
 
-  const [formData, setFormData] = useState(shippingDetails || {
-    firstName: '',
-    lastName: '',
-    address: '',
-    mobile: '',
-    city: '',
-    province: '',
-    zipCode: '',
+
+
+  React.useEffect(() => {
+     fetch('http://localhost:5000/api/products')
+      .then(res => res.json())
+      .then(data => {
+         const parsed = data.slice(0, 3).map((p, i) => {
+             let imgList = [];
+             try { imgList = JSON.parse(p.images); } catch(e){}
+             return {
+                id: p.id,
+                brand: p.brand,
+                name: p.name,
+                priceNum: parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0,
+                image: imgList[0] ? `http://localhost:5000${imgList[0]}` : p.image_url ? `http://localhost:5000${p.image_url}` : null,
+             };
+         });
+         setRelated(parsed);
+      })
+      .catch(console.error);
+  }, []);
+
+  const [formData, setFormData] = useState({
+    firstName: shippingDetails?.firstName || '',
+    lastName: shippingDetails?.lastName || '',
+    email: shippingDetails?.email || '',
+    address: shippingDetails?.address || '',
+    mobile: shippingDetails?.mobile || '',
+    city: shippingDetails?.city || '',
+    province: shippingDetails?.province || '',
+    zipCode: shippingDetails?.zipCode || '',
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const subtotal = cartItems.reduce((s, i) => {
-    const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/,/g, '')) || 0;
+    const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
     return s + price * i.quantity;
   }, 0);
   const discountAmt = Math.round(subtotal * 0.15);
@@ -138,6 +153,14 @@ function ShippingDetails() {
                 </div>
 
                 <div className="flex flex-col gap-2">
+                  <label className="text-xs uppercase tracking-widest text-gray-400">Email Address</label>
+                  <input 
+                    type="email" name="email" value={formData.email} onChange={handleInputChange}
+                    placeholder="Your Email" className="w-full bg-transparent border border-[#333] focus:border-[#D4AF37] py-3 px-4 rounded-lg outline-none transition-colors text-sm"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
                   <label className="text-xs uppercase tracking-widest text-gray-400">Shipping Address</label>
                   <input 
                     type="text" name="address" value={formData.address} onChange={handleInputChange}
@@ -202,7 +225,7 @@ function ShippingDetails() {
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest truncate w-40">{item.name}</p>
                         <p className="text-[10px] text-gray-500 mt-1">Qty: {item.quantity}</p>
                       </div>
-                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/,/g,''))) * item.quantity)}</span>
+                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -242,7 +265,7 @@ function ShippingDetails() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {RELATED.map((p) => (
+            {related.map((p) => (
               <div key={p.id} className="group bg-[#111111] rounded-xl border border-[#2a2a2a] hover:border-[#D4AF37] transition-all duration-500 overflow-hidden cursor-pointer">
                 <div className="aspect-square bg-[#181818] overflow-hidden relative">
                   <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />

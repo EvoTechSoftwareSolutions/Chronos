@@ -19,6 +19,7 @@ import ProductDetail from "./pages/ProductDetail/ProductDetail";
 import ShippingDetails from "./pages/Checkout/ShippingDetails";
 import ShippingMethod from "./pages/Checkout/ShippingMethod";
 import PaymentDetails from "./pages/Checkout/PaymentDetails";
+import OrderSuccess from "./pages/Checkout/OrderSuccess";
 import Privacy from "./pages/Privacy/Privacy";
 import Terms from "./pages/Terms/Terms";
 
@@ -44,6 +45,7 @@ function App() {
             <Route path="/checkout/shipping" element={<ShippingDetails />} />
             <Route path="/checkout/shipping-method" element={<ShippingMethod />} />
             <Route path="/checkout/payment-details" element={<PaymentDetails />} />
+            <Route path="/checkout/success/:orderId" element={<OrderSuccess />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
           </Routes>

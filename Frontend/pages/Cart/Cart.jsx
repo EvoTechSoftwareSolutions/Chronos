@@ -35,7 +35,7 @@ function getColorName(hex) {
 function getPrice(item) {
   return typeof item.priceNum === 'number'
     ? item.priceNum
-    : parseFloat(String(item.price ?? '0').replace(/,/g, '')) || 0;
+    : parseFloat(String(item.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
 }
 
 // ─── Icons ────────────────────────────────────────────────────────────────────

@@ -30,75 +30,8 @@ const COLOR_MAP = {
 const SWATCHES = Object.keys(COLOR_MAP);
 
 function makeProducts(category) {
-  const seeds = {
-    luxury: [
-      { brand: 'ROLEX', name: 'Royal Chronograph Gold',   priceNum: 7500, tags: ['best-seller'], color: 'gold'   },
-      { brand: 'ROLEX', name: 'Submariner Night Dweller', priceNum: 9800, tags: ['best-seller'], color: 'black'  },
-      { brand: 'ROLEX', name: 'Submariner Blue Edition',  priceNum: 7100, tags: ['new'],         color: 'blue'   },
-      { brand: 'ROLEX', name: 'Day-Date Presidential',    priceNum: 12000,tags: ['best-seller'], color: 'gold'   },
-      { brand: 'ROLEX', name: 'Datejust Oyster Pearl',    priceNum: 7500, tags: ['new'],         color: 'silver' },
-      { brand: 'ROLEX', name: 'GMT-Master II Pepsi',      priceNum: 5000, tags: ['new'],         color: 'blue'   },
-      { brand: 'ROLEX', name: 'Cosmograph Daytona Gold',  priceNum: 15000,tags: ['best-seller'], color: 'gold'   },
-      { brand: 'ROLEX', name: 'Submariner Hulk Green',    priceNum: 9800, tags: ['new'],         color: 'black'  },
-      { brand: 'ROLEX', name: 'Explorer II White',        priceNum: 6200, tags: [],              color: 'white'  },
-      { brand: 'ROLEX', name: 'Milgauss Blue Lightning',  priceNum: 4800, tags: ['new'],         color: 'blue'   },
-      { brand: 'ROLEX', name: 'Air-King Black Dial',      priceNum: 4100, tags: ['best-seller'], color: 'black'  },
-      { brand: 'ROLEX', name: 'Cellini Moonphase Gold',   priceNum: 8900, tags: [],              color: 'gold'   },
-      { brand: 'ROLEX', name: 'Pearlmaster White Gold',   priceNum: 11000,tags: ['best-seller'], color: 'white'  },
-      { brand: 'ROLEX', name: 'Sea-Dweller Deepsea',      priceNum: 6700, tags: ['new'],         color: 'black'  },
-      { brand: 'ROLEX', name: 'Yacht-Master Platinum',    priceNum: 13500,tags: ['best-seller'], color: 'silver' },
-    ],
-    analog: [
-      { brand: 'OMEGA', name: 'Speedmaster Moonwatch',    priceNum: 5200, tags: ['best-seller'], color: 'black'  },
-      { brand: 'OMEGA', name: 'Seamaster 300M',           priceNum: 3100, tags: ['new'],         color: 'blue'   },
-      { brand: 'OMEGA', name: 'Constellation Globemaster',priceNum: 4800, tags: ['best-seller'], color: 'silver' },
-      { brand: 'OMEGA', name: 'De Ville Tourbillon',      priceNum: 9900, tags: ['best-seller'], color: 'gold'   },
-      { brand: 'OMEGA', name: 'Aqua Terra Annual Cal.',   priceNum: 3600, tags: ['new'],         color: 'white'  },
-      { brand: 'OMEGA', name: 'Seamaster Planet Ocean',   priceNum: 4400, tags: ['new'],         color: 'blue'   },
-      { brand: 'OMEGA', name: 'Speedmaster Dark Side',    priceNum: 6000, tags: ['best-seller'], color: 'black'  },
-      { brand: 'OMEGA', name: 'De Ville Prestige',        priceNum: 2900, tags: [],              color: 'silver' },
-      { brand: 'OMEGA', name: 'Seamaster 300M Bond',      priceNum: 4100, tags: ['new'],         color: 'blue'   },
-      { brand: 'OMEGA', name: 'Railmaster Co-Axial',      priceNum: 3400, tags: ['best-seller'], color: 'black'  },
-      { brand: 'OMEGA', name: 'Deville Hour Vision',      priceNum: 7200, tags: ['new'],         color: 'gold'   },
-      { brand: 'OMEGA', name: 'Speedmaster Racing',       priceNum: 5600, tags: ['best-seller'], color: 'white'  },
-    ],
-    sport: [
-      { brand: 'TAG HEUER', name: 'Carrera Calibre 16',   priceNum: 3500, tags: ['best-seller'], color: 'black'  },
-      { brand: 'TAG HEUER', name: 'Aquaracer Titanium',   priceNum: 2100, tags: ['new'],         color: 'blue'   },
-      { brand: 'TAG HEUER', name: 'Monaco Blue Dial',     priceNum: 4700, tags: ['best-seller'], color: 'blue'   },
-      { brand: 'TAG HEUER', name: 'Formula 1 Chronograph',priceNum: 1800, tags: ['new'],         color: 'silver' },
-      { brand: 'TAG HEUER', name: 'Carrera Sport Ceramic',priceNum: 5600, tags: ['best-seller'], color: 'black'  },
-      { brand: 'TAG HEUER', name: 'Monaco Gulf Edition',  priceNum: 6300, tags: ['new'],         color: 'blue'   },
-      { brand: 'TAG HEUER', name: 'Link Chronograph',     priceNum: 2900, tags: [],              color: 'silver' },
-      { brand: 'TAG HEUER', name: 'Connected Calibre E4', priceNum: 1500, tags: ['new'],         color: 'black'  },
-      { brand: 'TAG HEUER', name: 'Autavia Isograph',     priceNum: 3200, tags: ['best-seller'], color: 'white'  },
-      { brand: 'TAG HEUER', name: 'Carrera Glassbox',     priceNum: 4100, tags: ['best-seller'], color: 'gold'   },
-      { brand: 'TAG HEUER', name: 'Aquaracer Night Dive', priceNum: 2400, tags: ['new'],         color: 'blue'   },
-      { brand: 'TAG HEUER', name: 'Formula 1 Grand Prix', priceNum: 2200, tags: ['new'],         color: 'black'  },
-    ],
-    smart: [
-      { brand: 'GARMIN', name: 'Fenix 7X Solar',          priceNum: 1200, tags: ['best-seller'], color: 'black'  },
-      { brand: 'GARMIN', name: 'Venu 3 AMOLED',           priceNum: 850,  tags: ['new'],         color: 'gold'   },
-      { brand: 'GARMIN', name: 'Epix Pro Gen 2',          priceNum: 1600, tags: ['best-seller'], color: 'silver' },
-      { brand: 'GARMIN', name: 'Forerunner 965',          priceNum: 1100, tags: ['new'],         color: 'black'  },
-      { brand: 'GARMIN', name: 'Descent Mk3i',            priceNum: 2400, tags: ['best-seller'], color: 'blue'   },
-      { brand: 'GARMIN', name: 'Tactix 7 Pro Ballistics', priceNum: 3000, tags: ['best-seller'], color: 'black'  },
-      { brand: 'GARMIN', name: 'Vivoactive 5 Premium',    priceNum: 700,  tags: ['new'],         color: 'white'  },
-      { brand: 'GARMIN', name: 'Instinct 2 Solar',        priceNum: 950,  tags: ['new'],         color: 'silver' },
-      { brand: 'GARMIN', name: 'Marq Carbon',             priceNum: 2800, tags: ['best-seller'], color: 'gold'   },
-      { brand: 'GARMIN', name: 'Lily 2 Active',           priceNum: 550,  tags: ['new'],         color: 'white'  },
-      { brand: 'GARMIN', name: 'Fenix 7S Pro',            priceNum: 1400, tags: ['best-seller'], color: 'silver' },
-      { brand: 'GARMIN', name: 'Forerunner 265',          priceNum: 680,  tags: ['new'],         color: 'blue'   },
-    ],
-  };
-
-  const data = seeds[category] || seeds.luxury;
-  return data.map((item, i) => ({
-    ...item,
-    id: i,
-    price: item.priceNum.toLocaleString(),
-    image: IMAGES[i % IMAGES.length],
-  }));
+  // Static definitions removed; replaced by API.
+  return [];
 }
 
 // ─── Config per category ──────────────────────────────────────────────────────
@@ -112,25 +45,33 @@ const CATEGORY_CONFIG = {
 const PAGE_SIZE = 9;
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
-function ProductCard({ id, category, brand, name, price, image, tags }) {
-  const product = { id, brand, name, price, image, tags };
+function ProductCard({ id, category, brand, name, price, image, tags, stock_quantity }) {
+  const product = { id, brand, name, price, image, tags, stock_quantity };
   return (
     <Link
       to={`/product/${category}/${id}`}
       state={{ product }}
-      className="group relative bg-[#111111] rounded-xl border border-[#2a2a2a] hover:border-[#D4AF37] transition-all duration-300 overflow-hidden cursor-pointer block"
+      className={`group relative bg-[#111111] rounded-xl border border-[#2a2a2a] hover:border-[#D4AF37] transition-all duration-300 overflow-hidden cursor-pointer block ${stock_quantity <= 0 ? 'opacity-75' : ''}`}
     >
       {/* Badges */}
-      <div className="absolute top-3 left-3 z-10 flex gap-1">
-        {tags.includes('best-seller') && (
-          <span className="text-[9px] bg-[#D4AF37] text-black px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
-            Best Seller
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-1">
+        {stock_quantity <= 0 ? (
+          <span className="text-[9px] bg-red-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wider font-bold shadow-lg">
+            Sold Out
           </span>
-        )}
-        {tags.includes('new') && (
-          <span className="text-[9px] bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
-            New
-          </span>
+        ) : (
+          <>
+            {tags.includes('best-seller') && (
+              <span className="text-[9px] bg-[#D4AF37] text-black px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
+                Best Seller
+              </span>
+            )}
+            {tags.includes('new') && (
+              <span className="text-[9px] bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                New
+              </span>
+            )}
+          </>
         )}
       </div>
 
@@ -160,7 +101,7 @@ function ArrowDownIcon() { return <svg xmlns="http://www.w3.org/2000/svg" classN
 // ─── Main Component ───────────────────────────────────────────────────────────
 function CategoryPage({ category }) {
   const config   = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.luxury;
-  const allProducts = useMemo(() => makeProducts(category), [category]);
+  const [allProducts, setAllProducts] = useState([]);
 
   // ── State ──
   const [activeSort,  setActiveSort]  = useState('All');        // All | Best Selling | New Arrival
@@ -168,6 +109,33 @@ function CategoryPage({ category }) {
   const [priceDir,    setPriceDir]    = useState('asc');        // asc | desc
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [showTop,      setShowTop]    = useState(false);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/products')
+      .then(res => res.json())
+      .then(data => {
+         let items = data;
+         if (category && category !== 'all') {
+            items = data.filter(p => (p.category?.toLowerCase() || '') === category.toLowerCase());
+         }
+         const parsed = items.map((p, i) => {
+             let imgList = [];
+             try { imgList = JSON.parse(p.images); } catch(e){}
+             return {
+                id: p.id,
+                brand: p.brand,
+                name: p.name,
+                priceNum: parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0,
+                price: String(p.price),
+                image: imgList[0] ? `http://localhost:5000${imgList[0]}` : p.image_url ? `http://localhost:5000${p.image_url}` : "",
+                tags: [],
+                stock_quantity: parseInt(p.stock_quantity) || 0
+             };
+         });
+         setAllProducts(parsed);
+      })
+      .catch(console.error);
+  }, [category]);
 
   // ── Scroll to top button visibility ──
   useEffect(() => {
@@ -355,6 +323,7 @@ function CategoryPage({ category }) {
               price={product.price}
               image={product.image}
               tags={product.tags}
+              stock_quantity={product.stock_quantity}
             />
           ))}
         </div>

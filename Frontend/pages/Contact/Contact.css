@@ -1,7 +1,10 @@
 /* Contact Page Styles */
 .contact-container {
   background-color: #030303;
+<<<<<<< HEAD
   /* Darker background for more depth */
+=======
+>>>>>>> dev/dilsara
   min-height: 100vh;
   color: white;
   overflow-x: hidden;
@@ -13,6 +16,7 @@
   top: 0;
   left: 0;
   width: 200%;
+<<<<<<< HEAD
   /* Wider to allow for movement */
   height: 200%;
   z-index: 0;
@@ -20,6 +24,13 @@
   pointer-events: none;
   background: url('../../assets/images/ui/Waves.png');
   background-size: contain;
+=======
+  height: 200%;
+  z-index: 0;
+  opacity: 0.05;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(212,175,55,0.3) 0%, transparent 70%);
+>>>>>>> dev/dilsara
 }
 
 .get-in-touch {
@@ -104,7 +115,10 @@
   display: flex;
   align-items: center;
   margin-bottom: 2rem;
+<<<<<<< HEAD
   /* Increased vertical gap */
+=======
+>>>>>>> dev/dilsara
   transition: transform 0.3s ease;
 }
 
@@ -266,7 +280,10 @@
   height: 2px;
   background-color: #D4AF37;
   margin: 1.5rem auto 0;
+<<<<<<< HEAD
   /* Position below titles */
+=======
+>>>>>>> dev/dilsara
   position: relative;
   z-index: 10;
 }
@@ -336,4 +353,8 @@
   font-size: 0.7rem;
   letter-spacing: 0.3rem;
   color: #D4AF37;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> dev/dilsara
