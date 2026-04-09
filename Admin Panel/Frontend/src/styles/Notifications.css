@@ -1,0 +1,141 @@
+.notifications-page {
+    padding: 20px;
+    animation: fadeIn 0.5s ease;
+}
+
+.notifications-list-container {
+    background: rgba(26, 26, 26, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.notif-table-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+    background: rgba(212, 175, 55, 0.05);
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.notifications-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.notifications-table th {
+    text-align: left;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    color: #d4af37;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.notifications-table tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.3s ease;
+}
+
+.notifications-table tr:hover {
+    background: rgba(212, 175, 55, 0.03);
+}
+
+.notifications-table td {
+    padding: 15px 20px;
+    color: #ccc;
+    font-size: 0.95rem;
+}
+
+.unread-row {
+    background: rgba(212, 175, 55, 0.05);
+}
+
+.unread-row td {
+    color: #fff;
+    font-weight: 500;
+}
+
+.status-col {
+    width: 60px;
+    position: relative;
+    text-align: center;
+}
+
+.unread-dot {
+    position: absolute;
+    top: 15px;
+    left: 10px;
+    width: 8px;
+    height: 8px;
+    background: #d4af37;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #d4af37;
+}
+
+.type-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.type-wrap span {
+    font-size: 0.8rem;
+    color: #888;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.msg-col {
+    max-width: 400px;
+}
+
+.date-col {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.mark-read-btn {
+    background: transparent;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #d4af37;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mark-read-btn:hover {
+    background: #d4af37;
+    color: #000;
+}
+
+.read-icon {
+    color: #22c55e;
+    opacity: 0.5;
+}
+
+.unread-icon {
+    color: #d4af37;
+}
+
+.empty-msg {
+    text-align: center;
+    padding: 40px;
+    color: #555;
+    font-style: italic;
+}
+
+.text-red-500 { color: #ef4444; }
+.text-gold-500 { color: #d4af37; }
+.text-blue-500 { color: #3b82f6; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

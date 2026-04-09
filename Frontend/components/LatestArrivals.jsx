@@ -39,9 +39,10 @@ function LatestArrivals() {
                 id: p.id,
                 brand: p.brand,
                 name: p.name,
-                price: String(p.price),
-                rating: '4.9',
-                reviews: '128',
+                category: p.category || 'luxury',
+                price: String(p.price)+"$",
+                rating: p.feedback_rate || '0.0',
+                reviews: p.feedback_count || '0',
                 image: imgList[0] ? `http://localhost:5000${imgList[0]}` : p.image_url ? `http://localhost:5000${p.image_url}` : "",
              };
          });
@@ -53,7 +54,7 @@ function LatestArrivals() {
   const handleQuickView = (e, watch) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/product/luxury/${watch.id}`);
+    navigate(`/product/${watch.category.toLowerCase()}/${watch.id}`);
   };
 
   const handleAddToCart = (e, watch) => {
@@ -65,7 +66,7 @@ function LatestArrivals() {
 
     addToCart({
       id: watch.id,
-      category: 'luxury', 
+      category: watch.category.toLowerCase(), 
       brand: watch.brand,
       name: watch.name,
       price: watch.price,
@@ -78,21 +79,21 @@ function LatestArrivals() {
   };
 
   return (
-    <section className="py-20 px-8 relative w-full max-w-7xl mx-auto">
+    <section className="py-12 lg:py-20 px-6 sm:px-10 lg:px-8 relative w-full max-w-7xl mx-auto">
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 lg:mb-16">
         <div>
-          <h4 className="text-[#D4AF37] uppercase tracking-widest text-sm mb-2 font-serif">Just Landed</h4>
-          <h2 className="text-white text-4xl md:text-5xl font-serif tracking-wide">LATEST ARRIVALS</h2>
-          <div className="w-16 h-0.5 bg-[#D4AF37] mt-6"></div>
+          <h4 className="text-[#D4AF37] uppercase tracking-widest text-xs sm:text-sm mb-2 font-serif">Just Landed</h4>
+          <h2 className="text-white text-3xl sm:text-4xl lg:text-5xl font-serif tracking-wide">LATEST ARRIVALS</h2>
+          <div className="w-16 h-0.5 bg-[#D4AF37] mt-4 lg:mt-6"></div>
         </div>
-        <div className="mt-8 md:mt-0 text-right">
-          <h3 className="text-[#D4AF37] text-xl font-serif tracking-[0.2em]">CHRONOS</h3>
-          <p className="text-white text-xs uppercase tracking-widest mt-1 opacity-80">Watches</p>
+        <div className="mt-6 md:mt-0 text-left md:text-right">
+          <h3 className="text-[#D4AF37] text-lg lg:text-xl font-serif tracking-[0.2em]">CHRONOS</h3>
+          <p className="text-white text-[10px] sm:text-xs uppercase tracking-widest mt-1 opacity-80">Watches</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
         {watches.map((watch) => (
           <div 
             key={watch.id}

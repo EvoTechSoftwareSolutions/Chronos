@@ -1,67 +1,69 @@
-import React from 'react';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
+import React from 'react'
+import './Terms.css'
+import Navbar from '../../components/Navbar'
+import Footer from '../../components/Footer'
+import ScrollToTopButton from '../../components/ScrollToTopButton'
 
-function Terms() {
-  return (
-    <div style={{ background: '#030303', minHeight: '100vh', color: '#fff' }}>
-      <Navbar />
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '8rem 2rem 6rem' }}>
-        <h4 style={{ color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em', fontSize: '0.75rem', marginBottom: '1rem' }}>
-          Legal
-        </h4>
-        <h1 style={{ fontFamily: "'Playfair Display SC', serif", fontSize: '2.5rem', letterSpacing: '0.05em', marginBottom: '1rem' }}>
-          Terms & Conditions
-        </h1>
-        <div style={{ width: '40px', height: '2px', background: '#D4AF37', marginBottom: '3rem' }} />
+const Terms = () => {
+    return (
+        <div className="terms-page">
+            <Navbar />
+            <div className="glow glow-terms-top"></div>
+            <div className="glow glow-terms-left"></div>
+            <div className="glow glow-terms-right"></div>
+            <div className="terms-container">
 
-        {[
-          {
-            title: '1. Acceptance of Terms',
-            body: 'By accessing and using the CHRONOS website, you accept and agree to be bound by the terms and provisions of this agreement.',
-          },
-          {
-            title: '2. Products & Authenticity',
-            body: 'All timepieces sold through CHRONOS are 100% authentic and sourced from authorized distributors. Each watch is guaranteed against manufacturing defects.',
-          },
-          {
-            title: '3. Purchases & Payments',
-            body: 'All prices are listed in the applicable currency. We reserve the right to refuse or cancel any order due to pricing errors, fraud, or availability issues.',
-          },
-          {
-            title: '4. Returns & Refunds',
-            body: 'Items may be returned within 14 days of receipt in original, unworn condition with all original packaging and documentation. Custom orders are non-refundable.',
-          },
-          {
-            title: '5. Shipping',
-            body: 'We ship worldwide. Shipping times vary by location and selected shipping method. Risk of loss passes to you upon delivery.',
-          },
-          {
-            title: '6. Intellectual Property',
-            body: 'All content on this site, including images, logos, and text, is the property of CHRONOS and may not be reproduced without written permission.',
-          },
-          {
-            title: '7. Limitation of Liability',
-            body: 'CHRONOS shall not be liable for any indirect, incidental, or consequential damages arising out of your use of our services or products.',
-          },
-          {
-            title: '8. Governing Law',
-            body: 'These terms shall be governed by and construed in accordance with applicable local laws, without regard to conflict of law provisions.',
-          },
-        ].map((section, i) => (
-          <div key={i} style={{ marginBottom: '2.5rem' }}>
-            <h2 style={{ color: '#D4AF37', fontSize: '1rem', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-              {section.title}
-            </h2>
-            <p style={{ color: '#aaa', lineHeight: '1.8', fontSize: '0.9rem' }}>{section.body}</p>
-          </div>
-        ))}
+                <div className="terms-header">
+                    <span className="sub-heading">LEGAL</span>
+                    <h1>TERM OF SERVICES</h1>
+                    <p className="last-updated">Last Updated 15/03/2026</p>
+                    <div className="gold-line"></div>
+                </div>
 
-        <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '4rem' }}>Last updated: April 2026</p>
-      </div>
-      <Footer />
-    </div>
-  );
+                <div className="terms-intro">
+                    <p>Welcome to CHRONOS. Please read these Terms of Service carefully before using our website or making any purchases. These terms govern your use of our services and your relationship with CHRONOS.</p>
+                </div>
+
+                <div className="terms-content">
+                    <div className="terms-section">
+                        <h2>1. ACCEPTANCE OF TERMS</h2>
+                        <p>By accessing and using the CHRONOS website, you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our website or services.</p>
+                    </div>
+
+                    <div className="terms-section">
+                        <h2>2. PRODUCTS & PRICING</h2>
+                        <p>All watches listed on our website are subject to availability. We reserve the right to modify prices at any time without prior notice. Prices displayed include applicable taxes unless otherwise stated. Product images are for illustration purposes and may vary slightly from the actual product.</p>
+                    </div>
+
+                    <div className="terms-section">
+                        <h2>3. ORDERS & PAYMENT</h2>
+                        <p>By placing an order, you are making an offer to purchase. We reserve the right to accept or decline any order. Payment must be made in full at the time of purchase using accepted payment methods including credit cards, debit cards, and bank transfers. All transactions are processed securely through our payment partners.</p>
+                    </div>
+
+                    <div className="terms-section">
+                        <h2>4. SHIPPING & DELIVERY</h2>
+                        <p>We offer worldwide shipping with full insurance on all orders. Delivery times vary based on your location and chosen shipping method. CHRONOS is not responsible for delays caused by customs, weather, or other factors beyond our control. Risk of loss passes to you upon delivery.</p>
+                    </div>
+
+                    <div className="terms-section">
+                        <h2>5. RETURNS & REFUNDS</h2>
+                        <p>We accept returns within 14 days of delivery for unworn watches in original packaging with all tags attached. Custom or engraved watches are non-returnable. Refunds will be processed within 10 business days of receiving the returned item. Return shipping costs are the responsibility of the buyer unless the item is defective.</p>
+                    </div>
+
+                    <div className="terms-section">
+                        <h2>6. WARRANTY</h2>
+                        <p>All watches purchased through CHRONOS come with the manufacturer's warranty. We also provide a 2-year CHRONOS warranty covering manufacturing defects. Warranty does not cover damage from misuse, unauthorized modifications, or normal wear and tear. For warranty claims, contact our support team.</p>
+                    </div>
+                </div>
+            </div>
+             <div className="center-title" style={{position: 'relative'}}>
+              <h3>CHRONOS</h3>
+              <p>WATCHES</p>
+              <ScrollToTopButton />
+            </div>
+            <Footer />
+        </div>
+    )
 }
 
-export default Terms;
+export default Terms

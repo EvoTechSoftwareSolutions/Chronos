@@ -1,6 +1,7 @@
 /* Contact Page Styles */
 .contact-container {
   background-color: #030303;
+
   min-height: 100vh;
   color: white;
   overflow-x: hidden;
@@ -101,6 +102,7 @@
   display: flex;
   align-items: center;
   margin-bottom: 2rem;
+
   transition: transform 0.3s ease;
 }
 
@@ -262,6 +264,7 @@
   height: 2px;
   background-color: #D4AF37;
   margin: 1.5rem auto 0;
+
   position: relative;
   z-index: 10;
 }

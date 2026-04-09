@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
@@ -33,18 +33,15 @@ const TAGS        = ['Order Free', 'Free Delivery', 'Last Price'];
 const SIZES       = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const COLORS_HEX  = ['#D4AF37', '#F5F5F5', '#1A1A1A', '#1E88E5', '#FFFFFF'];
 
-const REVIEWS = [
-  { name: 'Nelson Varona', stars: 5, text: "I've purchased from many luxury retailers, but Chronos stands apart. The attention to detail from packaging to after-sales is great.", product: 'Royal Chronograph Gold', color: 'Gold', avatar: 'N' },
-  { name: 'Nelson Varona', stars: 5, text: "I've purchased from many luxury retailers, but Chronos stands apart. The collection is stunning and everything arrived on time.", product: 'Royal Chronograph Gold', color: 'Gold', avatar: 'N' },
-  { name: 'Nelson Varona', stars: 5, text: "I've purchased from many luxury retailers, but Chronos stands apart. From packaging to after-sales they are great.", product: 'Royal Chronograph Gold', color: 'Gold', avatar: 'N' },
-];
+
 
 // ─── Stars ────────────────────────────────────────────────────────────────────
 function Stars({ count = 5, className = '' }) {
+  const rounded = Math.round(count);
   return (
     <span className={`flex gap-0.5 ${className}`}>
       {[...Array(5)].map((_, i) => (
-        <svg key={i} className={`w-3.5 h-3.5 ${i < count ? 'text-[#D4AF37]' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 20 20">
+        <svg key={i} className={`w-3.5 h-3.5 ${i < rounded ? 'text-[#D4AF37]' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 20 20">
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
         </svg>
       ))}
@@ -106,24 +103,30 @@ function ProductDetail() {
   // ── ALL hooks must be called unconditionally (Rules of Hooks) ──
   // ── Parse images from DB ──
   const [images, setImages] = useState([]);
-  const [activeImg, setActiveImg] = useState('');
+  const [activeImg, setActiveImg] = useState(null);
 
   useEffect(() => {
     if (product) {
       let imgList = [];
       try {
         if (product.images) {
-          imgList = JSON.parse(product.images);
-        } else if (product.image_url) {
-          imgList = [product.image_url];
+          const parsed = JSON.parse(product.images);
+          if (Array.isArray(parsed) && parsed.length > 0) imgList = parsed;
+        } 
+        
+        if (imgList.length === 0 && (product.image_url || product.image)) {
+           imgList = [product.image_url || product.image];
         }
       } catch (e) {
         if (product.image_url) imgList = [product.image_url];
       }
       
-      const fullPaths = imgList.map(img => img.startsWith('http') ? img : `http://localhost:5000${img}`);
+      const fullPaths = imgList
+        .filter(path => !!path)
+        .map(img => img.startsWith('http') ? img : `http://localhost:5000${img}`);
+        
       setImages(fullPaths);
-      setActiveImg(fullPaths[0] || '');
+      setActiveImg(fullPaths.length > 0 ? fullPaths[0] : null);
     }
   }, [product]);
 
@@ -132,6 +135,19 @@ function ProductDetail() {
   const [qty,         setQty]         = useState(1);
   const [showTop,     setShowTop]     = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(3);
+  const imgRef = useRef(null);
+  const [glowHeight, setGlowHeight] = useState(0);
+
+  const handleImgLoad = () => {
+    if (imgRef.current) setGlowHeight(imgRef.current.offsetHeight);
+  };
+
+  // ── Calculate Review Stats ──
+  const totalReviews = reviews.length;
+  const averageRating = totalReviews > 0 
+    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(1)
+    : "0.0";
 
   const { addToCart } = useCart();
 
@@ -206,213 +222,255 @@ function ProductDetail() {
         <Navbar />
       <div className="pt-28" />
 
-      {/* ── Breadcrumb ─────────────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6 md:px-10 mb-8 pt-4">
-        <nav className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all duration-300 group"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-2 text-[11px] text-gray-500 uppercase tracking-[0.2em] font-medium">
-             <Link to="/home" className="hover:text-[#D4AF37] transition-colors">Home</Link>
-             <span>/</span>
-             <Link to={`/category/${product.category}`} className="hover:text-[#D4AF37] transition-colors">{categoryLabel}</Link>
-             <span>/</span>
-             <span className="text-gray-300 font-semibold">{product.name}</span>
-          </div>
-        </nav>
+      {/* ── Breadcrumb & Back ───────────────────────────────────────────── */}
+      <div className="max-w-[1400px] mx-auto px-6 md:px-12 pt-10 pb-6 flex items-center gap-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 rounded-full border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all duration-300 group flex-shrink-0"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+        </button>
+        <div className="flex items-center gap-2 text-[13px] text-gray-400 tracking-wider font-medium">
+          <Link to="/home" className="hover:text-[#D4AF37] transition-colors">Home</Link>
+          <span className="text-gray-600">/</span>
+          <Link to={`/category/${product.category}`} className="hover:text-[#D4AF37] transition-colors uppercase">{product.category || 'Watches'}</Link>
+          <span className="text-gray-600">/</span>
+          <span className="text-white/60">{product.name}</span>
+        </div>
       </div>
 
       {/* ── Product Section ─────────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6 md:px-10 mb-20">
-        <div className="flex flex-col lg:flex-row gap-12">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-12 pb-24">
+        <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 items-stretch">
 
-          {/* Left — Image Gallery */}
-          <div className="flex flex-col lg:flex-row gap-6 lg:w-1/2">
-            {/* Thumbnails column - Extreme Left */}
-            <div className="flex lg:flex-col gap-4 justify-start">
-              {images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveImg(img)}
-                  className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl overflow-hidden border-2 transition-all duration-300 flex-shrink-0 ${
-                    activeImg === img
-                      ? 'border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.3)]'
-                      : 'border-white/5 hover:border-white/20 bg-[#111111]'
-                  }`}
-                >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+          {/* LEFT — Image Gallery Side */}
+          <div className="lg:w-[48%] relative">
+            <div className="sticky top-32 flex flex-col md:flex-row gap-8">
+              {/* Thumbnails */}
+              <div className="flex md:flex-col order-2 md:order-1 gap-4 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-hide justify-center md:justify-start">
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImg(img)}
+                    className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border-2 transition-all duration-500 flex-shrink-0 ${
+                      activeImg === img
+                        ? 'border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.25)] scale-105'
+                        : 'border-white/5 hover:border-white/20 bg-white/5'
+                    }`}
+                  >
+                    {img && <img src={img} alt="" className="w-full h-full object-cover p-1" />}
+                  </button>
+                ))}
+              </div>
 
-            {/* Main image - Portrait with large rounded corners */}
-            <div className="flex-1 aspect-[4/5] bg-[#111111] rounded-[40px] border border-white/5 overflow-hidden flex items-center justify-center relative group shadow-2xl">
-              <img
-                src={activeImg}
-                alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
+              {/* Main image */}
+              <div className="order-1 md:order-2 flex-grow bg-white/[0.03] rounded-[40px] p-6 md:p-10 flex items-center justify-center min-h-[400px] lg:min-h-[550px] border border-white/5 overflow-hidden">
+                {activeImg && (
+                  <img
+                    ref={imgRef}
+                    onLoad={handleImgLoad}
+                    src={activeImg}
+                    alt={product.name}
+                    className="w-full h-full object-contain object-center max-h-[500px] transition-transform duration-1000 hover:scale-110"
+                  />
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right — Product Info */}
-          <div className="lg:w-1/2 flex flex-col gap-6">
+          {/* RIGHT — Product Info Side */}
+          <div className="lg:w-[50%] flex flex-col gap-8 pt-4">
 
-            <p className="text-[#D4AF37] text-sm tracking-[0.4em] uppercase font-bold">
+            {/* Brand */}
+            <p className="text-gray-400 text-sm tracking-[0.6em] uppercase font-bold text-center lg:text-left">
               {product.brand}
             </p>
- 
-            <h1 className="font-playfair text-4xl md:text-5xl uppercase tracking-[0.1em] leading-tight text-white font-medium">
+
+            {/* Name */}
+            <h1 className="text-white text-4xl lg:text-6xl font-bold uppercase tracking-tight leading-[1.1] text-center lg:text-left"
+                style={{ fontFamily: "'Playfair Display SC', serif" }}>
               {product.name}
             </h1>
- 
-            <div className="flex items-center gap-3">
-              <Stars count={5} />
-              <span className="text-gray-400 text-xs font-medium tracking-wider">4.7(203 REVIEWS)</span>
+
+            {/* Rating */}
+            <div className="flex items-center justify-center lg:justify-start gap-3">
+              <Stars count={parseFloat(averageRating)} className="scale-125" />
+              <span className="text-gray-400 text-xs tracking-[0.2em] font-medium pt-1">
+                {averageRating}({totalReviews} REVIEWS)
+              </span>
             </div>
- 
-            <p className="text-[#D4AF37] text-4xl font-semibold tracking-wide">
-              $ <span className="ml-1">{product.price}</span>
+
+            {/* Price */}
+            <p className="text-[#D4AF37] text-4xl lg:text-5xl font-bold tracking-tight text-center lg:text-left mt-4 py-2">
+              $ <span className="ml-2">{String(product.price).replace('$', '').trim()}</span>
             </p>
- 
-            <p className="text-gray-300 text-sm leading-relaxed font-light max-w-lg">
+
+            {/* Description */}
+            <p className="text-gray-400 text-[15px] leading-relaxed max-w-xl mx-auto lg:mx-0 text-center lg:text-left font-medium opacity-80">
               {product.description || (DESCRIPTIONS[product.category?.toLowerCase()] || DESCRIPTIONS.luxury)}
             </p>
- 
-            {/* Mockup Tags */}
-            <div className="flex flex-wrap gap-4">
+
+            {/* Feature Tags */}
+            <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-2">
               {['Carbon Fiber', 'Super-LumiNova', 'Gold Strap'].map(tag => (
-                <span key={tag} className="text-[10px] border border-[#D4AF37]/30 text-gray-300 px-6 py-2 rounded-full uppercase tracking-[0.2em] font-medium bg-[#111111]/50 backdrop-blur-sm hover:border-[#D4AF37] transition-colors cursor-default">
+                <div
+                  key={tag}
+                  className="text-[10px] border border-white/10 text-gray-400 px-8 py-3 rounded-xl tracking-widest font-bold bg-white/[0.02] hover:border-[#D4AF37]/40 transition-all cursor-default"
+                >
                   {tag}
-                </span>
+                </div>
               ))}
             </div>
 
-            <div className="w-full h-px bg-[#2a2a2a]" />
+            <div className="h-px bg-white/5 my-4" />
 
-            {/* Color */}
-            <div className="flex items-center gap-6">
-              <p className="text-white text-sm font-medium tracking-wide w-20">Color :</p>
-              <div className="flex gap-4">
-                {COLORS_HEX.map(hex => (
-                  <button
-                    key={hex}
-                    onClick={() => setActiveColor(hex)}
-                    style={{ backgroundColor: hex }}
-                    className={`relative w-8 h-8 rounded-full border transition-all duration-300 flex items-center justify-center ${
-                      activeColor === hex
-                        ? 'border-[#D4AF37] ring-1 ring-[#D4AF37] ring-offset-2 ring-offset-black'
-                        : 'border-white/20 hover:border-white/60'
-                    }`}
-                  >
-                    {activeColor === hex && hex === '#D4AF37' && (
-                       <span className="text-[8px] text-black font-bold uppercase pointer-events-none">Gold</span>
-                    )}
-                  </button>
-                ))}
+            {/* Selectors Group */}
+            <div className="flex flex-col gap-10">
+              
+              {/* Color Selector */}
+              <div className="flex items-center gap-8">
+                 <p className="text-white text-sm font-bold tracking-widest min-w-[100px]">Color :</p>
+                 <div className="flex gap-4">
+                    {COLORS_HEX.map(hex => (
+                      <button
+                        key={hex}
+                        onClick={() => setActiveColor(hex)}
+                        style={{ backgroundColor: hex }}
+                        className={`group relative w-10 h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
+                          activeColor === hex
+                            ? 'border-[#D4AF37] scale-110 shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                            : 'border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                         {activeColor === hex && (
+                            <div className="absolute inset-0 rounded-full border border-[#D4AF37] scale-125 opacity-40 animate-pulse" />
+                         )}
+                      </button>
+                    ))}
+                 </div>
               </div>
-            </div>
- 
-            {/* Strap Size */}
-            <div className="flex items-center gap-6">
-              <p className="text-white text-sm font-medium tracking-wide w-20">Strap Size :</p>
-              <div className="flex flex-wrap gap-3">
-                {[24, 26, 28, 30, 32].map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setActiveSize(String(s))}
-                    className={`w-9 h-9 rounded-full text-[10px] font-bold border transition-all duration-300 ${
-                      activeSize === String(s)
-                        ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.4)]'
-                        : 'bg-transparent text-gray-400 border-white/20 hover:border-[#D4AF37] hover:text-[#D4AF37]'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Quantity */}
-            <div className="flex items-center gap-6">
-              <p className="text-white text-sm font-medium tracking-wide w-20">Quantity :</p>
-              <div className="flex items-center bg-[#111111] border border-white/10 rounded-lg overflow-hidden h-10">
-                <button
-                  onClick={() => setQty(q => Math.max(1, q - 1))}
-                  className="px-4 text-gray-400 hover:text-[#D4AF37] transition-colors text-lg"
-                >−</button>
-                <div className="w-10 h-8 flex items-center justify-center bg-black/50 border-x border-white/10 text-sm font-bold">
-                  {qty}
+              {/* Strap Size */}
+              <div className="flex items-center gap-8">
+                <p className="text-white text-sm font-bold tracking-widest min-w-[100px]">Strap Size :</p>
+                <div className="flex gap-3">
+                  {[24, 26, 28, 30, 32].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setActiveSize(String(s))}
+                      className={`w-11 h-11 rounded-full text-xs font-bold border transition-all duration-500 flex items-center justify-center ${
+                        activeSize === String(s)
+                          ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)] scale-110'
+                          : 'bg-transparent text-gray-500 border-white/10 hover:border-[#D4AF37]/40 hover:text-white'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
                 </div>
-                <button
-                  onClick={() => setQty(q => q + 1)}
-                  className="px-4 text-gray-400 hover:text-[#D4AF37] transition-colors text-lg"
-                >+</button>
+              </div>
+
+              {/* Quantity */}
+              <div className="flex items-center gap-8">
+                <p className="text-white text-sm font-bold tracking-widest min-w-[100px]">Quantity :</p>
+                <div className="flex items-center border border-white/10 rounded-xl overflow-hidden h-12 bg-white/[0.03] backdrop-blur-sm">
+                  <button
+                    onClick={() => setQty(q => Math.max(1, q - 1))}
+                    className="w-12 h-full flex items-center justify-center text-gray-400 hover:text-[#D4AF37] hover:bg-white/5 transition-colors text-xl font-light"
+                  >−</button>
+                  <span className="w-14 h-full flex items-center justify-center text-white text-base font-bold border-x border-white/5 bg-white/[0.02]">
+                    {qty}
+                  </span>
+                  <button
+                    onClick={() => setQty(q => q + 1)}
+                    className="w-12 h-full flex items-center justify-center text-gray-400 hover:text-[#D4AF37] hover:bg-white/5 transition-colors text-xl font-light"
+                  >+</button>
+                </div>
               </div>
             </div>
- 
-            {/* CTA */}
-            <div className="flex flex-col gap-4 mt-4">
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col gap-6 mt-6">
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock_quantity <= 0}
-                className={`w-full py-4 rounded-xl font-bold uppercase tracking-[0.2em] text-sm transition-all duration-500 shadow-xl ${
+                className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[13px] transition-all duration-500 overflow-hidden relative group ${
                   addedToCart
-                    ? 'bg-green-600 text-white shadow-green-900/20'
+                    ? 'bg-green-600 text-white'
                     : product.stock_quantity <= 0
-                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                    : 'bg-[#D4AF37] hover:bg-[#c9a430] text-black shadow-[#D4AF37]/10'
+                    ? 'bg-[#1a1a1a] text-gray-600 cursor-not-allowed'
+                    : 'bg-[#D4AF37] hover:bg-[#c9a430] text-black shadow-[0_10px_30px_rgba(212,175,55,0.3)] hover:-translate-y-1 active:scale-[0.98]'
                 }`}
               >
-                {addedToCart ? '✓ Item Added' : (product.stock_quantity > 0 ? 'Add to Cart' : 'Sold Out')}
+                <span className="relative z-10">{addedToCart ? '✓ Added to Cart' : (product.stock_quantity > 0 ? 'Add to Cart' : 'Sold Out')}</span>
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               </button>
+              
               <button
                 onClick={() => { handleAddToCart(); navigate('/cart'); }}
-                className="w-full py-4 rounded-xl font-bold uppercase tracking-[0.2em] text-sm bg-transparent border border-[#D4AF37]/50 text-white hover:bg-[#D4AF37]/10 transition-all duration-300 shadow-xl"
+                className="w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[13px] bg-transparent border border-[#D4AF37]/40 text-white hover:bg-[#D4AF37]/5 hover:border-[#D4AF37] transition-all duration-500 hover:-translate-y-1 active:scale-[0.98]"
               >
                 Buy Now
               </button>
             </div>
+
           </div>
         </div>
       </div>
 
       {/* ── What Customers Say ───────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6 md:px-10 mb-24">
-        <div className="mb-10">
-          <h2 className="font-playfair text-3xl text-white tracking-wide mb-3">What Customers Say</h2>
-          <div className="w-16 h-[2px] bg-[#D4AF37]" />
+      <div className="max-w-6xl mx-auto px-6 md:px-16 mb-32">
+        <div className="mb-14 text-center">
+          <h2 className="font-playfair text-3xl md:text-4xl text-white tracking-widest uppercase mb-4">What Customers Say</h2>
+          <div className="w-20 h-[1.5px] bg-[#D4AF37] mx-auto" />
         </div>
-        {reviews.length === 0 ? <p className="text-gray-500 italic">No reviews yet. Be the first to review this product!</p> : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {reviews.map((r, i) => (
-            <div key={i} className="bg-[#111111] border border-[#1e1e1e] hover:border-[#D4AF37]/30 rounded-2xl p-6 transition-all duration-300">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center text-sm font-bold">
-                    V
+        
+        {reviews.length === 0 ? (
+          <div className="text-center py-20 border border-white/5 rounded-3xl bg-[#0d0d0d]">
+             <p className="text-gray-500 italic font-playfair tracking-widest">Awaiting the first critique of this masterwork.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {reviews.slice(0, visibleCount).map((r, i) => (
+                <div key={i} className="group bg-[#111111] border border-[#1e1e1e] hover:border-[#D4AF37]/40 rounded-3xl p-8 transition-all duration-500 hover:-translate-y-2 shadow-lg">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D4AF37]/30 to-[#D4AF37]/5 text-[#D4AF37] flex items-center justify-center text-sm font-bold border border-[#D4AF37]/20 uppercase">
+                        {(r.customer_name || "C")[0]}
+                      </div>
+                      <div>
+                        <p className="text-white text-sm font-medium tracking-wide">{r.customer_name || "Valued Client"}</p>
+                        <Stars count={r.rating} className="mt-1" />
+                      </div>
+                    </div>
+                    <div className="opacity-20 group-hover:opacity-40 transition-opacity">
+                      <svg className="w-8 h-8 text-[#D4AF37]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14.017 21v-7.391c0-5.704 3.748-9.57 9-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.995zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.999v10h-9.999z" />
+                      </svg>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-white text-sm font-medium">Verified Buyer</p>
-                    <Stars count={r.rating} className="mt-0.5" />
+                  <p className="text-gray-400 text-[13px] leading-relaxed mb-6 font-light italic">"{r.comment}"</p>
+                  <div className="flex items-center gap-2 pt-6 border-t border-white/5">
+                    <span className="text-[10px] text-gray-600 uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
                 </div>
-                <svg className="w-6 h-6 text-[#D4AF37]/30" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14.017 21v-7.391c0-5.704 3.748-9.57 9-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.995zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.999v10h-9.999z" />
-                </svg>
-              </div>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">{r.comment}</p>
-              <div className="flex flex-wrap gap-3 text-[10px] uppercase tracking-widest">
-                <span className="text-gray-600">Date: <span className="text-gray-400">{new Date(r.created_at).toLocaleDateString()}</span></span>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+            
+            {visibleCount < totalReviews && (
+              <div className="mt-14 text-center">
+                <button 
+                  onClick={() => setVisibleCount(prev => prev + 3)}
+                  className="px-10 py-3 border border-[#D4AF37]/30 text-[#D4AF37] rounded-full text-xs uppercase tracking-[0.2em] font-bold hover:bg-[#D4AF37] hover:text-black transition-all duration-500 hover:shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+                >
+                  Load More Experiences
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

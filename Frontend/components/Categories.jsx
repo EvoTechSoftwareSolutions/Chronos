@@ -2,10 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 
-import luxuryImg from '../assets/images/categories/canalog.png';
-import sportImg from '../assets/images/categories/Cimg1.png';
-import analogImg from '../assets/images/categories/csmart.png';
-import smartImg from '../assets/images/categories/csport.png';
+import luxuryImg from '../assets/images/categories/cimg1.png';
+import sportImg from '../assets/images/categories/Csport.png';
+import analogImg from '../assets/images/categories/canalog.png';
+import smartImg from '../assets/images/categories/csmart.png';
 
 function CategoryCard({ id, to, title, items, image, imagePlaceholder, heightClass }) {
   return (
@@ -70,10 +70,10 @@ function Categories() {
       </div>
 
       {/* Grid Layout (Staggered Masonry feel) */}
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-center justify-items-center mt-10">
+      <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-center justify-items-center mt-10 px-4 lg:px-0">
         
         {/* Column 1: Luxury */}
-        <div className="w-full flex justify-center lg:justify-end">
+        <div className="w-full flex justify-center lg:justify-end h-full">
           <CategoryCard 
             id="category-luxury"
             to="/category/luxury"
@@ -81,7 +81,7 @@ function Categories() {
             title="Luxury" 
             items="24 Items" 
             imagePlaceholder="LUXURY IMG" 
-            heightClass="h-[380px] lg:h-[420px]" 
+            heightClass="h-[320px] sm:h-[380px] lg:h-[420px]" 
           />
         </div>
         
@@ -94,7 +94,7 @@ function Categories() {
             title="Sport" 
             items="18 Items" 
             imagePlaceholder="SPORT IMG" 
-            heightClass="h-[280px] lg:h-[300px]" 
+            heightClass="h-[260px] sm:h-[280px] lg:h-[300px]" 
           />
           <CategoryCard 
             id="category-analog"
@@ -103,12 +103,12 @@ function Categories() {
             title="Analog" 
             items="32 Items" 
             imagePlaceholder="ANALOG IMG" 
-            heightClass="h-[280px] lg:h-[300px]" 
+            heightClass="h-[260px] sm:h-[280px] lg:h-[300px]" 
           />
         </div>
         
         {/* Column 3: Smart */}
-        <div className="w-full flex justify-center lg:justify-start">
+        <div className="w-full flex justify-center lg:justify-start h-full">
           <CategoryCard 
             id="category-smart"
             to="/category/smart"
@@ -116,7 +116,7 @@ function Categories() {
             title="Smart" 
             items="12 Items" 
             imagePlaceholder="SMART IMG" 
-            heightClass="h-[380px] lg:h-[420px]" 
+            heightClass="h-[320px] sm:h-[380px] lg:h-[420px]" 
           />
         </div>
 

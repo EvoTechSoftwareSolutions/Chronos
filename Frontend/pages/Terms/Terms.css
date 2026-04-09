@@ -1,0 +1,163 @@
+.terms-page {
+    position: relative;
+    width: 100%;
+    z-index: 0;
+    background-color: #0b0b0b;
+    overflow-x: hidden;
+    color: #f5f5f5;
+    min-height: 100vh;
+    padding-bottom: 50px;
+}
+
+.terms-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../../assets/images/ui/Waves.png');
+    background-size: cover;
+    background-position: top center;
+    background-repeat: repeat-y;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.terms-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 120px 40px 60px;
+    position: relative;
+    z-index: 10;
+}
+
+.terms-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.terms-header .sub-heading {
+    font-family: 'Playfair Display SC', serif;
+    color: #D4AF37;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    margin-bottom: 15px;
+}
+
+.terms-header h1 {
+    font-family: 'Playfair Display SC', serif;
+    font-size: 42px;
+    font-weight: 400;
+    margin: 0 0 10px 0;
+    letter-spacing: 1px;
+}
+
+.terms-header .last-updated {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #a0a0a0;
+    font-size: 14px;
+    margin-bottom: 25px;
+}
+
+.terms-header .gold-line {
+    width: 60px;
+    height: 2px;
+    background-color: #D4AF37;
+}
+
+.terms-intro {
+    text-align: center;
+    margin-bottom: 70px;
+}
+
+.terms-intro p {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    color: #e0e0e0;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.terms-content {
+    display: flex;
+    flex-direction: column;
+    gap: 45px;
+}
+
+.terms-section h2 {
+    font-family: 'Playfair Display SC', serif;
+    font-size: 30px;
+    font-weight: 400;
+    color: #f5f5f5;
+    margin: 0 0 15px 0;
+    letter-spacing: 1px;
+}
+
+.terms-section p {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 15px 0;
+}
+
+/* Glow Effects */
+.glow {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, transparent 60%);
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.glow-terms-top {
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+}
+
+.glow-terms-left {
+    top: 30%;
+    left: -200px;
+    width: 700px;
+    height: 700px;
+}
+
+.glow-terms-right {
+    bottom: 0;
+    right: -200px;
+    width: 700px;
+    height: 700px;
+}
+
+@media (max-width: 768px) {
+    .terms-container {
+        padding: 100px 20px 40px;
+    }
+
+    .terms-header h1 {
+        font-size: 32px;
+    }
+
+    .terms-intro p {
+        font-size: 16px;
+    }
+
+    .terms-section h2 {
+        font-size: 24px;
+    }
+
+    .terms-section p {
+        font-size: 15px;
+    }
+}

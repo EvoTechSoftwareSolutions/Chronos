@@ -10,16 +10,7 @@ import creditLogo from '../../assets/images/ui/credit.png';
 import applePayLogo from '../../assets/images/ui/apple_pay_logo.png';
 import paypalLogo from '../../assets/images/ui/paypal.png';
 
-// ─── Related products (Same as ShippingDetails for consistency) ─────────────────────────
-import rImg1 from '../../assets/images/products/latest1.png';
-import rImg2 from '../../assets/images/products/latest2.png';
-import rImg3 from '../../assets/images/products/latest3.png';
 
-const RELATED = [
-  { id: 'r1', brand: 'ROLEX', name: 'Submariner Black',       priceNum: 80,  image: rImg1 },
-  { id: 'r2', brand: 'ROLEX', name: 'Royal Chronograph Gold', priceNum: 110, image: rImg2 },
-  { id: 'r3', brand: 'OMEGA', name: 'Ocean Blue Master',      priceNum: 98,  image: rImg3 },
-];
 
 function fmt(n) {
   return Number(n).toLocaleString('en-US');
@@ -54,8 +45,8 @@ function PaymentDetails() {
     const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
     return s + price * i.quantity;
   }, 0);
-  const discountAmt = Math.round(subtotal * 0.15);
-  const total = subtotal - discountAmt;
+  const discountAmt = 0;
+  const total = subtotal;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -91,8 +82,12 @@ function PaymentDetails() {
     setError('');
 
     try {
+      // Get logged-in user from localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+
       const payload = {
         items: cartItems.map((item) => ({
+          id: item.id,
           brand: item.brand,
           name: item.name,
           price: typeof item.priceNum === 'number' ? item.priceNum : parseFloat(String(item.price ?? '0').replace(/[^0-9.]/g, '')),
@@ -105,7 +100,9 @@ function PaymentDetails() {
         total,
         shippingDetails,
         shippingMethod,
-        paymentMethod
+        paymentMethod,
+        email: user.email || shippingDetails?.email,
+        accountId: user.account_id || null
       };
 
       const res = await axios.post('http://localhost:5000/checkout', payload);
@@ -213,36 +210,37 @@ function PaymentDetails() {
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pt-36 pb-8 text-left">
-          <h1 className="font-playfair text-4xl md:text-5xl text-white tracking-widest uppercase">
-            Checkout - Payment Details
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 pt-28 md:pt-36 pb-8 text-center md:text-left">
+          <h1 className="font-playfair uppercase tracking-widest text-white leading-tight"
+              style={{ fontSize: 'clamp(1.8rem, 6vw, 3.5rem)' }}>
+            Payment Details
           </h1>
-          <div className="w-24 h-[3px] bg-[#D4AF37] mt-4" />
+          <div className="w-16 h-[2px] bg-[#D4AF37] mt-3 mx-auto md:ml-0" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pb-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 pb-20">
           {successMsg ? (
-            <div className="flex flex-col items-center justify-center py-24 mb-10 border border-[#D4AF37]/30 bg-[#111111]/80 rounded-2xl">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-[#D4AF37] mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="flex flex-col items-center justify-center py-24 mb-10 border border-[#D4AF37]/30 bg-[#111111]/80 rounded-2xl shadow-2xl">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-20 md:h-24 w-20 md:w-24 text-[#D4AF37] mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <h2 className="text-[#D4AF37] text-3xl font-playfair tracking-widest uppercase mb-4 text-center px-4">{successMsg}</h2>
-              <p className="text-gray-400 text-sm tracking-wide mb-10 text-center max-w-md px-4">An order confirmation email has been dispatched. Thank you for shopping with Chronos Luxury Watches.</p>
+              <h2 className="text-[#D4AF37] text-2xl md:text-3xl font-playfair tracking-widest uppercase mb-4 text-center px-4 leading-tight">{successMsg}</h2>
+              <p className="text-gray-400 text-xs md:text-sm tracking-wide mb-10 text-center max-w-md px-6 leading-relaxed">An order confirmation email has been dispatched. Thank you for shopping with Chronos Luxury Watches.</p>
               <button 
                 onClick={() => navigate('/home')}
-                className="px-10 py-4 border border-[#D4AF37] text-[#D4AF37] font-semibold rounded-full uppercase tracking-widest text-xs hover:bg-[#D4AF37] hover:text-black transition-all"
+                className="px-8 md:px-10 py-3.5 md:py-4 border border-[#D4AF37] text-[#D4AF37] font-semibold rounded-full uppercase tracking-widest text-[10px] md:text-xs hover:bg-[#D4AF37] hover:text-black transition-all"
               >
                 Return to Collection
               </button>
             </div>
           ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[60%_35%] gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[62%_33%] gap-10 lg:gap-16 items-start">
             
             {/* LEFT — Payment Details Form */}
-            <div className="bg-[#111111]/80 backdrop-blur-md rounded-2xl border border-[#2a2a2a] p-8 md:p-10">
-              <h2 className="text-white font-medium tracking-wide text-xl mb-8">payment Details</h2>
+            <div className="bg-[#111111]/80 backdrop-blur-md rounded-2xl border border-[#2a2a2a] p-6 sm:p-8 md:p-10 shadow-2xl">
+              <h2 className="text-white font-medium tracking-wide text-xl mb-8 border-b border-white/5 pb-4">Payment Method</h2>
               
-              {error && <p className="text-red-500 mb-6 text-sm">{error}</p>}
+              {error && <p className="text-red-500 mb-6 text-sm bg-red-500/10 p-3 rounded-lg border border-red-500/20">{error}</p>}
 
               {/* Payment Tabs */}
               <div className="flex gap-4 mb-8 overflow-x-auto pb-2 scrollbar-none">
@@ -348,10 +346,6 @@ function PaymentDetails() {
                   <div className="flex justify-between">
                     <span>Amount</span>
                     <span className="text-white">$ {fmt(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Discount</span>
-                    <span className="text-[#D4AF37]">15%</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>

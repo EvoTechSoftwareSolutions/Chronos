@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 
@@ -22,7 +22,6 @@ const IMAGES = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10];
 // Colors mapped to swatch hex values
 const COLOR_MAP = {
   '#D4AF37': 'gold',
-  '#FFFFFF': 'silver',
   '#1A1A1A': 'black',
   '#1E88E5': 'blue',
   '#F5F5F5': 'white',
@@ -45,8 +44,8 @@ const CATEGORY_CONFIG = {
 const PAGE_SIZE = 9;
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
-function ProductCard({ id, category, brand, name, price, image, tags, stock_quantity }) {
-  const product = { id, brand, name, price, image, tags, stock_quantity };
+function ProductCard({ id, category, brand, name, price, image, isNew, isBestSeller, stock_quantity }) {
+  const product = { id, brand, name, price, image, isNew, isBestSeller, stock_quantity };
   return (
     <Link
       to={`/product/${category}/${id}`}
@@ -61,12 +60,12 @@ function ProductCard({ id, category, brand, name, price, image, tags, stock_quan
           </span>
         ) : (
           <>
-            {tags.includes('best-seller') && (
+            {isBestSeller && (
               <span className="text-[9px] bg-[#D4AF37] text-black px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
                 Best Seller
               </span>
             )}
-            {tags.includes('new') && (
+            {isNew && (
               <span className="text-[9px] bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
                 New
               </span>
@@ -86,9 +85,9 @@ function ProductCard({ id, category, brand, name, price, image, tags, stock_quan
 
       {/* Info */}
       <div className="px-4 py-3">
-        <p className="text-[#D4AF37] text-[10px] tracking-[0.2em] uppercase font-medium mb-1">{brand}</p>
+        <p className="text-[#aaa] text-[10px] tracking-[0.2em] uppercase font-medium mb-1">{brand}</p>
         <h4 className="text-white text-sm font-medium leading-snug tracking-wide mb-2 uppercase">{name}</h4>
-        <p className="text-white text-sm font-semibold">$ {price}</p>
+        <p className="text-[#D4AF37] text-sm font-semibold">$ {price}</p>
       </div>
     </Link>
   );
@@ -99,7 +98,10 @@ function ArrowUpIcon()   { return <svg xmlns="http://www.w3.org/2000/svg" classN
 function ArrowDownIcon() { return <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" /></svg>; }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-function CategoryPage({ category }) {
+function CategoryPage({ category: propCategory }) {
+  const { categoryName } = useParams();
+  const category = propCategory || categoryName || 'luxury';
+
   const config   = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.luxury;
   const [allProducts, setAllProducts] = useState([]);
 
@@ -125,10 +127,12 @@ function CategoryPage({ category }) {
                 id: p.id,
                 brand: p.brand,
                 name: p.name,
-                priceNum: parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0,
+                priceVal: p.priceVal || parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0,
                 price: String(p.price),
                 image: imgList[0] ? `http://localhost:5000${imgList[0]}` : p.image_url ? `http://localhost:5000${p.image_url}` : "",
-                tags: [],
+                isBestSeller: p.isBestSeller,
+                isNew: p.isNew,
+                color: p.color, // Already normalized by backend
                 stock_quantity: parseInt(p.stock_quantity) || 0
              };
          });
@@ -155,20 +159,20 @@ function CategoryPage({ category }) {
 
     // 1. Sort filter (Best Selling / New Arrival)
     if (activeSort === 'Best Selling') {
-      list = list.filter(p => p.tags.includes('best-seller'));
+      list = list.filter(p => p.isBestSeller);
     } else if (activeSort === 'New Arrival') {
-      list = list.filter(p => p.tags.includes('new'));
+      list = list.filter(p => p.isNew);
     }
 
     // 2. Color filter
     if (activeColor) {
       const colorName = COLOR_MAP[activeColor];
-      list = list.filter(p => p.color === colorName);
+      list = list.filter(p => (p.color || '').toLowerCase() === (colorName || '').toLowerCase());
     }
 
     // 3. Price sort
     list.sort((a, b) =>
-      priceDir === 'asc' ? a.priceNum - b.priceNum : b.priceNum - a.priceNum
+      priceDir === 'asc' ? a.priceVal - b.priceVal : b.priceVal - a.priceVal
     );
 
     return list;
@@ -193,82 +197,81 @@ function CategoryPage({ category }) {
       <Navbar />
 
       {/* ── Hero Banner ─────────────────────────────────────────────────── */}
-      <div className="relative w-full h-[320px] md:h-[380px] flex items-center justify-center overflow-hidden">
+      <div className="relative w-full h-[280px] md:h-[380px] flex items-center justify-center overflow-hidden">
         <img
           src={heroBg}
           alt="hero background"
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-75"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-70"
         />
-        <div className="absolute inset-0" />
-        <div className="relative z-10 text-center px-4">
-          <p className="text-[#D4AF37] uppercase tracking-[0.35em] text-[11px] mb-3 font-medium">
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="relative z-10 text-center px-6">
+          <p className="text-[#D4AF37] uppercase tracking-[0.35em] text-[10px] md:text-[11px] mb-3 font-medium">
             {config.subtitle}
           </p>
           <h1
             className="text-white uppercase font-playfair tracking-widest leading-tight"
-            style={{ fontSize: 'clamp(2.2rem, 6vw, 4.5rem)' }}
+            style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}
           >
             {config.title}
           </h1>
-          <div className="w-16 h-[2px] bg-[#D4AF37] mx-auto mt-5" />
+          <div className="w-12 md:w-16 h-[2px] bg-[#D4AF37] mx-auto mt-4 md:mt-5" />
         </div>
       </div>
 
       {/* ── Filter / Sort Bar ────────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6 md:px-10 mt-10 mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div className="max-w-6xl mx-auto px-6 lg:px-10 mt-8 md:mt-10 mb-6 flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-4">
 
-        {/* Sort label */}
-        <span className="text-gray-500 text-xs uppercase tracking-widest">Sort :</span>
-
-        {/* Sort pills */}
-        <div className="flex gap-2">
-          {['All', 'Best Selling', 'New Arrival'].map((f) => (
-            <button
-              key={f}
-              onClick={() => resetAndSet(() => setActiveSort(f))}
-              className={`px-5 py-1.5 rounded-full text-xs tracking-widest uppercase transition-all duration-300 border ${
-                activeSort === f
-                  ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-semibold'
-                  : 'bg-transparent text-gray-300 border-gray-600 hover:border-[#D4AF37] hover:text-[#D4AF37]'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+        {/* Sort label & pills */}
+        <div className="flex items-center gap-3">
+          <span className="text-gray-500 text-[10px] md:text-xs uppercase tracking-widest">Sort :</span>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {['All', 'Best Selling', 'New Arrival'].map((f) => (
+              <button
+                key={f}
+                onClick={() => resetAndSet(() => setActiveSort(f))}
+                className={`px-4 md:px-5 py-1.5 rounded-full text-[10px] tracking-widest uppercase transition-all duration-300 border ${
+                  activeSort === f
+                    ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-semibold'
+                    : 'bg-transparent text-gray-300 border-gray-600 hover:border-[#D4AF37] hover:text-[#D4AF37]'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Color swatches */}
-        <div className="flex items-center gap-2 ml-auto">
-          <span className="text-gray-500 text-xs uppercase tracking-widest mr-1">Color :</span>
-          {SWATCHES.map((hex) => (
-            <button
-              key={hex}
-              onClick={() => resetAndSet(() => setActiveColor(activeColor === hex ? null : hex))}
-              title={COLOR_MAP[hex]}
-              style={{ backgroundColor: hex }}
-              className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
-                activeColor === hex
-                  ? 'border-[#D4AF37] scale-125 shadow-[0_0_6px_rgba(212,175,55,0.6)]'
-                  : 'border-transparent hover:border-white/60'
-              }`}
-            />
-          ))}
+        <div className="flex items-center gap-3 md:ml-auto">
+          <span className="text-gray-500 text-[10px] md:text-xs uppercase tracking-widest mr-1">Color :</span>
+          <div className="flex gap-2.5">
+            {SWATCHES.map((hex) => (
+              <button
+                key={hex}
+                onClick={() => resetAndSet(() => setActiveColor(activeColor === hex ? null : hex))}
+                title={COLOR_MAP[hex]}
+                style={{ backgroundColor: hex }}
+                className={`w-5 h-5 md:w-5.5 md:h-5.5 rounded-full border-2 transition-all duration-200 ${
+                  activeColor === hex
+                    ? 'border-[#D4AF37] scale-125 shadow-[0_0_8px_rgba(212,175,55,0.6)]'
+                    : 'border-transparent hover:border-white/60'
+                }`}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Price toggle */}
         <button
           onClick={togglePrice}
-          className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-[#D4AF37] uppercase tracking-widest transition-colors duration-200 group"
+          className="flex items-center gap-2 text-[10px] md:text-xs text-gray-300 hover:text-[#D4AF37] uppercase tracking-widest transition-colors duration-200 border-l border-gray-800 pl-4 h-5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-[#D4AF37]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
           </svg>
-          <span>Price :</span>
+          <span className="hidden sm:inline">Price :</span>
           <span className="text-[#D4AF37] font-medium">
             {priceDir === 'asc' ? 'Low To High' : 'High To Low'}
-          </span>
-          <span className="text-[#D4AF37]">
-            {priceDir === 'asc' ? <ArrowUpIcon /> : <ArrowDownIcon />}
           </span>
         </button>
       </div>
@@ -322,7 +325,8 @@ function CategoryPage({ category }) {
               name={product.name}
               price={product.price}
               image={product.image}
-              tags={product.tags}
+              isNew={product.isNew}
+              isBestSeller={product.isBestSeller}
               stock_quantity={product.stock_quantity}
             />
           ))}

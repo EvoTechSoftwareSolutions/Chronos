@@ -66,8 +66,8 @@ function ShippingDetails() {
     const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
     return s + price * i.quantity;
   }, 0);
-  const discountAmt = Math.round(subtotal * 0.15);
-  const total = subtotal - discountAmt;
+  const discountAmt = 0;
+  const total = subtotal;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -118,24 +118,25 @@ function ShippingDetails() {
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pt-36 pb-8 text-left">
-          <h1 className="font-playfair text-4xl md:text-5xl text-white tracking-widest uppercase">
-            Checkout - Shipping Details
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 pt-28 md:pt-36 pb-8 text-center md:text-left">
+          <h1 className="font-playfair uppercase tracking-widest text-white leading-tight"
+              style={{ fontSize: 'clamp(1.8rem, 6vw, 3.5rem)' }}>
+            Shipping Details
           </h1>
-          <div className="w-24 h-[3px] bg-[#D4AF37] mt-4" />
+          <div className="w-16 h-[2px] bg-[#D4AF37] mt-3 mx-auto md:ml-0" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pb-20">
-          <div className="grid grid-cols-1 lg:grid-cols-[60%_35%] gap-12 items-start">
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 pb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-[62%_33%] gap-10 lg:gap-16 items-start">
             
             {/* LEFT — Shipping Form */}
-            <div className="bg-[#111111]/80 backdrop-blur-md rounded-2xl border border-[#2a2a2a] p-8 md:p-10">
-              <h2 className="text-white font-medium tracking-wide text-xl mb-8">Shipping Details</h2>
+            <div className="bg-[#111111]/80 backdrop-blur-md rounded-2xl border border-[#2a2a2a] p-6 sm:p-8 md:p-10 shadow-2xl">
+              <h2 className="text-white font-medium tracking-wide text-xl mb-8 border-b border-white/5 pb-4">Contact Information</h2>
               
-              {error && <p className="text-red-500 mb-6 text-sm">{error}</p>}
+              {error && <p className="text-red-500 mb-6 text-sm bg-red-500/10 p-3 rounded-lg border border-red-500/20">{error}</p>}
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
                     <label className="text-xs uppercase tracking-widest text-gray-400">First Name</label>
                     <input 
@@ -234,10 +235,6 @@ function ShippingDetails() {
                   <div className="flex justify-between">
                     <span>Amount</span>
                     <span className="text-white">$ {fmt(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Discount</span>
-                    <span className="text-[#D4AF37]">15%</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>

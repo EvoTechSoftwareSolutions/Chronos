@@ -1,45 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import './ScrollToTopButton.css'
 
-function ScrollToTopButton() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 400);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  if (!visible) return null;
+const ScrollToTopButton = () => {
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
 
   return (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      style={{
-        position: 'fixed',
-        bottom: '2rem',
-        right: '2rem',
-        width: '44px',
-        height: '44px',
-        borderRadius: '50%',
-        background: '#D4AF37',
-        color: '#000',
-        border: 'none',
-        fontSize: '1.2rem',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 4px 15px rgba(212,175,55,0.4)',
-        zIndex: 9999,
-        transition: 'transform 0.2s ease',
-      }}
-      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-      aria-label="Scroll to top"
-    >
-      ↑
-    </button>
-  );
+    <div className="scroll-to-top-wrapper">
+      <button
+        className="scroll-to-top-btn"
+        onClick={scrollToTop}
+        aria-label="Scroll to top"
+        id="scroll-to-top-button"
+      >
+        <svg
+          className="scroll-arrow-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="12" y1="19" x2="12" y2="5" />
+          <polyline points="5 12 12 5 19 12" />
+        </svg>
+      </button>
+    </div>
+  )
 }
 
-export default ScrollToTopButton;
+export default ScrollToTopButton

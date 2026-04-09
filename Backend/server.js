@@ -6,6 +6,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import bcrypt from "bcryptjs";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const MERCHANT_ID = "1234976";
 const MERCHANT_SECRET = "MTk1MTkwMDYyMzIyMjgxMzc4OTgyNDAxNjY0NzM5NTE0MDMyNjM4";
@@ -21,6 +25,7 @@ if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
 }
 app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, '../Admin Panel/backend/public/uploads')));
 
 // Configure Multer
 const storage = multer.diskStorage({
@@ -41,13 +46,24 @@ const db = mysql.createConnection({
   database: "chronos_db",
 });
 
+// Handle connection errors to prevent server crash (ECONNRESET)
+db.on('error', (err) => {
+  console.error("Database connection error:", err);
+  if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+    console.log("Attempting to reconnect or handling reset...");
+  } else {
+    // For other errors, we still log but don't let it crash the process
+    console.log("Encountered DB error but continuing server operation.");
+  }
+});
+
 // Connect DB
 db.connect((err) => {
   if (err) {
     console.log("DB Connection Error:", err);
   } else {
     console.log("MySQL Connected");
-    
+
     // Initialize Database Schema
     const createOrdersTableSql = `
       CREATE TABLE IF NOT EXISTS orders (
@@ -90,7 +106,33 @@ db.connect((err) => {
               db.query("ALTER TABLE orders ADD COLUMN email VARCHAR(255) AFTER id");
             }
             if (!cols.includes('order_status')) {
-              db.query("ALTER TABLE orders ADD COLUMN order_status VARCHAR(50) DEFAULT 'Processing' AFTER payment_status");
+              db.query("ALTER TABLE orders ADD COLUMN order_status VARCHAR(50) DEFAULT 'Pending' AFTER payment_status");
+            }
+            if (!cols.includes('customer_id')) {
+              db.query("ALTER TABLE orders ADD COLUMN customer_id VARCHAR(50) AFTER id");
+            }
+          }
+        });
+      }
+    });
+
+    const createUsersTableSql = `
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        account_id VARCHAR(50) UNIQUE,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    db.query(createUsersTableSql, (err) => {
+      if (!err) {
+        db.query("SHOW COLUMNS FROM users", (err, result) => {
+          if (!err) {
+            const cols = result.map(r => r.Field);
+            if (!cols.includes('account_id')) {
+              db.query("ALTER TABLE users ADD COLUMN account_id VARCHAR(50) UNIQUE AFTER id");
             }
           }
         });
@@ -110,6 +152,7 @@ db.connect((err) => {
       CREATE TABLE IF NOT EXISTS products (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        product_code VARCHAR(50) UNIQUE,
         brand VARCHAR(100),
         category VARCHAR(100),
         price VARCHAR(50),
@@ -130,14 +173,29 @@ db.connect((err) => {
              if (!cols.includes('images')) {
                db.query("ALTER TABLE products ADD COLUMN images JSON AFTER image_url");
              }
+             if (!cols.includes('product_code')) {
+               db.query("ALTER TABLE products ADD COLUMN product_code VARCHAR(50) UNIQUE AFTER name");
+             }
           }
         });
       }
     });
 
+    const createNotificationsSql = `
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        text TEXT NOT NULL,
+        type VARCHAR(50) DEFAULT 'info',
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    db.query(createNotificationsSql);
+
     const createCustomersSql = `
       CREATE TABLE IF NOT EXISTS customers (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        customer_id VARCHAR(50) UNIQUE,
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         orders_count INT DEFAULT 0,
@@ -148,7 +206,18 @@ db.connect((err) => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(createCustomersSql);
+    db.query(createCustomersSql, (err) => {
+      if (!err) {
+        db.query("SHOW COLUMNS FROM customers", (err, result) => {
+          if (!err) {
+            const cols = result.map(r => r.Field);
+            if (!cols.includes('customer_id')) {
+              db.query("ALTER TABLE customers ADD COLUMN customer_id VARCHAR(50) UNIQUE AFTER id");
+            }
+          }
+        });
+      }
+    });
 
     const createSettingsSql = `
       CREATE TABLE IF NOT EXISTS settings (
@@ -194,12 +263,26 @@ db.connect((err) => {
         product_id INT NOT NULL,
         order_id INT NOT NULL,
         customer_id INT,
+        customer_name VARCHAR(255),
         rating INT NOT NULL,
         comment TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(createReviewsSql);
+    db.query(createReviewsSql, (err) => {
+      if (!err) {
+        db.query("SHOW COLUMNS FROM reviews", (err, result) => {
+           if (!err) {
+              const cols = result.map(r => r.Field);
+              if (!cols.includes('customer_name')) {
+                db.query("ALTER TABLE reviews ADD COLUMN customer_name VARCHAR(255) AFTER customer_id");
+              }
+              // Migration: Set NULL customer_names to 'Valued Client'
+              db.query("UPDATE reviews SET customer_name = 'Valued Client' WHERE customer_name IS NULL OR customer_name = ''");
+           }
+        });
+      }
+    });
   }
 });
 
@@ -208,14 +291,30 @@ db.connect((err) => {
 app.post("/register", (req, res) => {
   const { name, email, password } = req.body;
   const hashedPassword = bcrypt.hashSync(password, 10);
-  const sql = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
+  const account_id = 'ACC-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+  
+  const sql = "INSERT INTO users (account_id, name, email, password) VALUES (?, ?, ?, ?)";
 
-  db.query(sql, [name, email, hashedPassword], (err, result) => {
+  db.query(sql, [account_id, name, email, hashedPassword], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') return res.json({ success: false, message: "Email already exists" });
       return res.json({ success: false, message: "Error saving data" });
     }
-    return res.json({ success: true, message: "User Registered" });
+
+    // Also update Customers page of admin panel
+    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    const insertCustSql = `
+      INSERT INTO customers (customer_id, initials, name, email, join_date, status)
+      VALUES (?, ?, ?, ?, CURDATE(), 'New')
+      ON DUPLICATE KEY UPDATE 
+        customer_id = VALUES(customer_id),
+        initials = VALUES(initials),
+        name = VALUES(name),
+        status = 'Active'
+    `;
+    db.query(insertCustSql, [account_id, initials, name, email]);
+
+    return res.json({ success: true, message: "User Registered", account_id });
   });
 });
 
@@ -223,16 +322,33 @@ app.post("/register", (req, res) => {
 //GOOGLE REGISTER
 app.post("/google-register", (req, res) => {
   const { name, email, password } = req.body;
+  const account_id = 'ACC-' + crypto.randomBytes(3).toString('hex').toUpperCase();
 
-  const sql = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
+  const sql = "INSERT INTO users (account_id, name, email, password) VALUES (?, ?, ?, ?)";
 
-  db.query(sql, [name, email, password], (err, result) => {
-  console.log(result); // use it
-
+  db.query(sql, [account_id, name, email, password], (err, result) => {
     if (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        // If already exists, just return success (login flow)
+        return res.json({ success: true });
+      }
       return res.json({ success: false });
     }
-    return res.json({ success: true });
+
+    // Also add to customers
+    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    const insertCustSql = `
+      INSERT INTO customers (customer_id, initials, name, email, join_date, status)
+      VALUES (?, ?, ?, ?, CURDATE(), 'New')
+      ON DUPLICATE KEY UPDATE 
+        customer_id = VALUES(customer_id),
+        initials = VALUES(initials),
+        name = VALUES(name),
+        status = 'Active'
+    `;
+    db.query(insertCustSql, [account_id, initials, name, email]);
+
+    return res.json({ success: true, account_id });
   });
 });
 
@@ -249,7 +365,14 @@ app.post("/login", (req, res) => {
       const user = result[0];
       const isMatch = bcrypt.compareSync(password, user.password || "");
       if (isMatch) {
-         return res.json({ success: true, user: { name: user.name, email: user.email } });
+         return res.json({ 
+           success: true, 
+           user: { 
+             name: user.name, 
+             email: user.email,
+             account_id: user.account_id 
+           } 
+         });
       }
     }
     return res.json({ success: false, message: "Invalid email or password" });
@@ -306,44 +429,27 @@ app.get("/api/products/search", (req, res) => {
   });
 });
 
-// REVIEWS API
-app.get("/api/reviews/:product_id", (req, res) => {
-   const sql = "SELECT * FROM reviews WHERE product_id = ? ORDER BY created_at DESC";
-   db.query(sql, [req.params.product_id], (err, results) => {
-       if(err) return res.status(500).json({ error: err.message });
-       res.json(results);
-   });
-});
+// NEWSLETTER AND OTHER APIS (REVIEWS HANDLED BELOW IN ADMIN/PUBLIC SECTIONS)
+// (Redundant routes removed to prevent confusion)
 
-app.post("/api/reviews", (req, res) => {
-  const { product_id, order_id, rating, comment } = req.body;
-  const sql = "INSERT INTO reviews (product_id, order_id, rating, comment) VALUES (?, ?, ?, ?)";
-  db.query(sql, [product_id, order_id, rating, comment], (err, result) => {
-      if(err) return res.status(500).json({ success: false, error: err.message});
-      res.json({ success: true, message: "Feedback submitted successfully!" });
-  });
-});
-
-//CHECKOUT - Save order to DB
 app.post("/checkout", (req, res) => {
-  console.log("Incoming checkout payload:", req.body);
-  const { items, subtotal, discount, total, shippingDetails, shippingMethod, paymentMethod, email } = req.body;
+  const { items, subtotal, discount, total, shippingDetails, shippingMethod, paymentMethod, email, accountId } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.json({ success: false, message: "No items in order" });
   }
 
   const userEmail = email || (shippingDetails && shippingDetails.email) || null;
-
   const { firstName, lastName, address, mobile, city, province, zipCode } = shippingDetails || {};
 
   const sql = `
     INSERT INTO orders 
-    (items, email, subtotal, discount, total, shipping_method, payment_method, first_name, last_name, address, mobile, city, province, zip_code) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (customer_id, items, email, subtotal, discount, total, shipping_method, payment_method, first_name, last_name, address, mobile, city, province, zip_code) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const values = [
+    accountId || null,
     JSON.stringify(items),
     userEmail,
     subtotal, 
@@ -366,20 +472,77 @@ app.post("/checkout", (req, res) => {
       return res.json({ success: false, message: "Error saving order" });
     }
     
+    // Trigger New Order Notification
+    const newOrderId = result.insertId;
+    const orderNotifText = `New order received: #ORD-${String(newOrderId).padStart(4, '0')} from ${firstName || 'Guest'} ${lastName || ''}`;
+    db.query("INSERT INTO notifications (text, type) VALUES (?, 'order')", [orderNotifText]);
+
+    
+    // Deduct Stock and Trigger Notifications
+    try {
+      const parsedItems = JSON.parse(JSON.stringify(items)); // Ensure it's an array
+      parsedItems.forEach(item => {
+        // 1. Deduct Stock
+        const updateStockSql = "UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?";
+        db.query(updateStockSql, [item.quantity, item.id], (uerr) => {
+          if (uerr) console.error("Error deducting stock for product", item.id, uerr);
+          
+          // 2. Check for Low Stock Notification
+          db.query("SELECT name, stock_quantity FROM products WHERE id = ?", [item.id], (serr, rows) => {
+             if (!serr && rows.length > 0) {
+                const p = rows[0];
+                if (p.stock_quantity < 5) {
+                   const notifText = `Low stock alert for ${p.name}. Only ${p.stock_quantity} left in inventory!`;
+                   db.query("INSERT INTO notifications (text, type) VALUES (?, 'low_stock')", [notifText]);
+                }
+             }
+          });
+        });
+      });
+    } catch (e) {
+      console.error("Stock deduction trigger error:", e);
+    }
+    
     // Automatically map into CRM if a user is logged in
     if (userEmail) {
-      const fullName = (firstName && lastName) ? `${firstName} ${lastName}` : "Unknown User";
-      const initials = (firstName ? firstName[0].toUpperCase() : "") + (lastName ? lastName[0].toUpperCase() : "");
-      const customerSql = `
-         INSERT INTO customers (name, email, orders_count, total_spent, join_date, status, initials)
-         VALUES (?, ?, 1, ?, CURDATE(), 'Active', ?)
-         ON DUPLICATE KEY UPDATE 
-         orders_count = orders_count + 1, 
-         total_spent = total_spent + ?,
-         status = 'Active'
-      `;
-      db.query(customerSql, [fullName, userEmail, total, initials, total], (cerr) => {
-         if(cerr) console.log("Error inserting to CRM:", cerr);
+      db.query("SELECT * FROM customers WHERE email = ?", [userEmail], (existsErr, rows) => {
+        const fullName = (firstName && lastName) ? `${firstName} ${lastName}` : "Unknown User";
+        const initials = (firstName ? firstName[0].toUpperCase() : "") + (lastName ? lastName[0].toUpperCase() : "");
+        
+        if (!existsErr && rows.length === 0) {
+          // NEW CUSTOMER (Absolute Guest)
+          const customer_id = 'CUST-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+          const insertSql = `
+            INSERT INTO customers (customer_id, initials, name, email, orders_count, total_spent, join_date, status)
+            VALUES (?, ?, ?, ?, 1, ?, CURDATE(), 'Active')
+          `;
+          db.query(insertSql, [customer_id, initials, fullName, userEmail, total], (ierr) => {
+            if (!ierr) {
+              const notifText = `New customer registration: ${fullName} (${customer_id})`;
+              db.query("INSERT INTO notifications (text, type) VALUES (?, 'customer')", [notifText]);
+              console.log("New customer added from checkout:", customer_id);
+            }
+          });
+        } else {
+          // EXISTING CUSTOMER (Registered or returning guest)
+          const existing = rows[0];
+          
+          // Protect Account ID prefix and registered name
+          const isRegistered = existing.customer_id?.startsWith('ACC-');
+          const finalId = accountId || existing.customer_id;
+          
+          const updateSql = `
+            UPDATE customers 
+            SET orders_count = orders_count + 1, 
+                total_spent = total_spent + ?,
+                status = 'Active'
+                ${(!isRegistered) ? ", name = ?" : ""}
+            WHERE email = ?
+          `;
+          
+          const params = (!isRegistered) ? [total, fullName, userEmail] : [total, userEmail];
+          db.query(updateSql, params);
+        }
       });
     }
 
@@ -460,33 +623,130 @@ app.post("/payhere-notify", express.urlencoded({ extended: true }), (req, res) =
   res.sendStatus(200);
 });
 
+// HELPERS for Filtering/Sorting
+const mapHexToColorName = (hex) => {
+  if (!hex) return 'Unknown';
+  const h = hex.toLowerCase();
+  if (h === '#000' || h === '#000000' || h === '#111111' || h.includes('black')) return 'Black';
+  if (h === '#fff' || h === '#ffffff' || h.includes('white')) return 'White';
+  if (h === '#d4af37' || h.includes('gold')) return 'Gold';
+  if (h === '#2563eb' || h === '#1e88e5' || h.includes('blue')) return 'Blue';
+  return 'Other'; // Fallback
+};
+
 // PUBLIC PRODUCTS API
 app.get("/api/products", (req, res) => {
-  db.query("SELECT * FROM products ORDER BY id DESC", (err, products) => {
+  
+  // 1. Fetch Products with Review Aggregates
+  const sql = `
+    SELECT p.*, 
+           COUNT(r.id) as feedback_count, 
+           COALESCE(AVG(r.rating), 0) as feedback_rate
+    FROM products p
+    LEFT JOIN reviews r ON p.id = r.product_id
+    GROUP BY p.id
+    ORDER BY p.created_at DESC
+  `;
+
+  db.query(sql, (err, products) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(products);
+
+    // 2. Fetch Orders to calculate Best Sellers
+    db.query("SELECT items FROM orders WHERE order_status != 'Canceled' OR order_status IS NULL", (err, orderRows) => {
+      const salesCount = {};
+      if (!err) {
+        orderRows.forEach(row => {
+          try {
+            const items = JSON.parse(row.items);
+            if (Array.isArray(items)) {
+              items.forEach(item => {
+                const id = item.id;
+                if (id) {
+                  salesCount[id] = (salesCount[id] || 0) + (Number(item.quantity) || 1);
+                }
+              });
+            }
+          } catch (e) {}
+        });
+      }
+
+      // 3. Process Products
+      const topSellerIds = Object.entries(salesCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([id]) => Number(id));
+
+      const newArrivalIds = products.slice(0, 8).map(p => Number(p.id));
+
+      const enhancedProducts = products.map(p => {
+        const pId = Number(p.id);
+        return {
+          ...p,
+          isBestSeller: topSellerIds.includes(pId),
+          isNew: newArrivalIds.includes(pId),
+          color: mapHexToColorName(p.color),
+          priceVal: parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0,
+          // Format numeric ratings
+          feedback_rate: Number(p.feedback_rate).toFixed(1),
+          feedback_count: Number(p.feedback_count)
+        };
+      });
+
+      res.json(enhancedProducts);
+    });
   });
 });
 
 app.get("/api/products/:id", (req, res) => {
   const { id } = req.params;
-  db.query("SELECT * FROM products WHERE id = ?", [id], (err, result) => {
+  const sql = `
+    SELECT p.*, 
+           COUNT(r.id) as feedback_count, 
+           COALESCE(AVG(r.rating), 0) as feedback_rate
+    FROM products p
+    LEFT JOIN reviews r ON p.id = r.product_id
+    WHERE p.id = ?
+    GROUP BY p.id
+  `;
+  db.query(sql, [id], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     if (result.length === 0) return res.status(404).json({ message: "Product not found" });
-    res.json(result[0]);
+    
+    const p = result[0];
+    res.json({
+      ...p,
+      feedback_rate: Number(p.feedback_rate).toFixed(1),
+      feedback_count: Number(p.feedback_count)
+    });
   });
 });
 
+// SEACH API (Consolidated with Reviews)
 app.get("/api/products/search", (req, res) => {
   const query = req.query.q;
   if (!query) return res.json([]);
   
-  const sql = "SELECT * FROM products WHERE name LIKE ? OR brand LIKE ? OR category LIKE ?";
+  const sql = `
+    SELECT p.*, 
+           COUNT(r.id) as feedback_count, 
+           COALESCE(AVG(r.rating), 0) as feedback_rate
+    FROM products p
+    LEFT JOIN reviews r ON p.id = r.product_id
+    WHERE p.name LIKE ? OR p.brand LIKE ? OR p.category LIKE ?
+    GROUP BY p.id
+  `;
   const searchTerm = `%${query}%`;
   
   db.query(sql, [searchTerm, searchTerm, searchTerm], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(results);
+    
+    const enhanced = results.map(p => ({
+       ...p,
+       feedback_rate: Number(p.feedback_rate).toFixed(1),
+       feedback_count: Number(p.feedback_count)
+    }));
+    
+    res.json(enhanced);
   });
 });
 
@@ -804,9 +1064,14 @@ app.get("/api/admin/orders", (req, res) => {
 
 // REVIEWS
 app.post("/api/reviews", (req, res) => {
-  const { product_id, order_id, rating, comment } = req.body;
-  const sql = "INSERT INTO reviews (product_id, order_id, rating, comment) VALUES (?, ?, ?, ?)";
-  db.query(sql, [product_id, order_id, rating, comment], (err) => {
+  const { product_id, order_id, rating, comment, customer_name } = req.body;
+  
+  if (!product_id) {
+    return res.status(400).json({ success: false, message: "Missing product_id. Reviews can only be submitted for items purchased with the new checkout system." });
+  }
+
+  const sql = "INSERT INTO reviews (product_id, order_id, rating, comment, customer_name) VALUES (?, ?, ?, ?, ?)";
+  db.query(sql, [product_id, order_id, rating, comment, customer_name], (err) => {
     if (err) return res.status(500).json({ success: false, error: err.message });
     res.json({ success: true });
   });
@@ -817,6 +1082,28 @@ app.get("/api/reviews/:product_id", (req, res) => {
   db.query("SELECT * FROM reviews WHERE product_id = ? ORDER BY created_at DESC", [product_id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
+  });
+});
+
+app.get("/api/reviews-featured", (req, res) => {
+  const sql = `
+    SELECT r.*, p.name as product_name, p.color as product_color
+    FROM reviews r
+    LEFT JOIN products p ON r.product_id = p.id
+    WHERE r.rating = 5
+    ORDER BY r.created_at DESC
+    LIMIT 3
+  `;
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    
+    // Normalize color codes to names
+    const mapped = results.map(r => ({
+      ...r,
+      product_color: mapHexToColorName(r.product_color)
+    }));
+    
+    res.json(mapped);
   });
 });
 
@@ -836,7 +1123,13 @@ app.put("/api/admin/orders/:id", (req, res) => {
   });
 });
 
+// 404 Handler - Log failing requests
+app.use((req, res, next) => {
+  console.log(`Resource NOT FOUND: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ error: "Resource not found" });
+});
+
 //START SERVER
 app.listen(5000, () => {
   console.log("Server running on port 5000");
-});
+});
