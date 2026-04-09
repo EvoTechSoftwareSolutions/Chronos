@@ -123,14 +123,13 @@ function Register() {
   });
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col md:flex-row-reverse overflow-x-hidden">
 
-      {/* LEFT */}
-      <div className="w-1/2 bg-[#1E1E1E] text-white flex items-center justify-center">
+      {/* LEFT (Form) */}
+      <div className="w-full md:w-1/2 bg-[#1E1E1E] text-white flex items-center justify-center p-8 md:p-0 py-16">
 
-        <form onSubmit={handleSubmit} className="w-[400px]">
-
-          {/* MESSAGE */}
+        <form onSubmit={handleSubmit} className="w-full max-w-[400px]">
+          {/* ... existing form contents ... */}
           {message && (
             <div
               className={`mb-4 p-3 rounded-md text-sm ${
@@ -154,7 +153,6 @@ function Register() {
             Create an account and discover the world of fine horology.
           </p>
 
-          {/* Name */}
           <div className="mb-5">
             <label className="text-sm text-gray-300">Full Name</label>
             <input
@@ -168,7 +166,6 @@ function Register() {
             {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
           </div>
 
-          {/* Email */}
           <div className="mb-5">
             <label className="text-sm text-gray-300">Your Email</label>
             <input
@@ -182,7 +179,6 @@ function Register() {
             {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
           </div>
 
-          {/* Password */}
           <div className="mb-6">
             <label className="text-sm text-gray-300">Password</label>
             <input
@@ -196,7 +192,6 @@ function Register() {
             {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
           </div>
 
-          {/* Button */}
           <button
             type="submit"
             className="w-full bg-[#D4AF37] text-black py-3 rounded-md font-semibold hover:bg-yellow-400 transition"
@@ -204,14 +199,12 @@ function Register() {
             Create Account
           </button>
 
-          {/* Divider */}
           <div className="flex items-center my-6">
             <div className="flex-grow border-t border-[#D4AF37]"></div>
             <span className="mx-3 text-gray-400 text-sm">Or</span>
             <div className="flex-grow border-t border-[#D4AF37]"></div>
           </div>
 
-          {/* GOOGLE BUTTON */}
           <button
             type="button"
             onClick={() => googleLogin()}
@@ -234,25 +227,24 @@ function Register() {
               Sign In
             </span>
           </p>
-
         </form>
       </div>
 
-      {/* RIGHT */}
-     <div className="w-1/2 bg-[linear-gradient(to_top_right,#000000_10%,#3a2f09_50%,#D4AF37_100%)] flex flex-col items-start justify-start text-white">
+      {/* RIGHT (Branding) */}
+      <div className="w-full md:w-1/2 bg-[linear-gradient(to_top_right,#000000_10%,#3a2f09_50%,#D4AF37_100%)] flex flex-col items-start justify-center text-white p-8 md:p-10 min-h-[300px] md:min-h-screen">
 
-        <h2 className="font-bold text-[70px] mt-32 ml-20">
+        <h2 className="font-bold text-[40px] md:text-[70px] mt-0 md:mt-10 ml-0 md:ml-10 leading-tight">
           Create Account
         </h2>
 
-        <p className="text-gray-200 text-[20px] ml-20 mb-40">
+        <p className="text-gray-200 text-sm md:text-[20px] ml-0 md:ml-10 mb-10 md:mb-20">
           Fill in the details to get started
         </p>
 
         <img
           src={logo}
           alt="Chronos Logo"
-          className="w-55 ml-15 mt-10"
+          className="w-32 md:w-55 ml-0 md:ml-10"
         />
       </div>
 

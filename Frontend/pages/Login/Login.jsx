@@ -66,6 +66,9 @@ function Login() {
 
         const user = userInfo.data;
 
+        // Store user in localStorage for persistence across sessions
+        localStorage.setItem("user", JSON.stringify({ name: user.name, email: user.email }));
+
         // Direct login (no password)
         setMessage(`Welcome ${user.name}! Login successful`);
         setIsSuccess(true);
@@ -82,31 +85,31 @@ function Login() {
   });
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="min-h-screen flex flex-col md:flex-row overflow-x-hidden">
 
       {/* LEFT SIDE */}
-      <div className="w-1/2 bg-[linear-gradient(to_top_left,#000000_25%,#3a2f09_50%,#D4AF37_100%)] flex flex-col justify-between p-10 text-white">
+      <div className="w-full md:w-1/2 bg-[linear-gradient(to_top_left,#000000_25%,#3a2f09_50%,#D4AF37_100%)] flex flex-col justify-between p-8 md:p-10 text-white min-h-[300px] md:min-h-screen">
 
        
-        <div className="mb-30">
-           <h2 className="font-bold text-[70px] mt-20 ml-20">
+        <div className="mb-10 md:mb-30">
+           <h2 className="font-bold text-[40px] md:text-[70px] mt-10 md:mt-20 ml-0 md:ml-20 leading-tight">
             Welcome Back
              </h2>
 
-           <p className="text-gray-200 text-[20px] ml-20 mb-40">
+           <p className="text-gray-200 text-sm md:text-[20px] ml-0 md:ml-20 mb-10 md:mb-40 max-w-sm">
             Sign in to explore our exclusive collection of luxury timepieces.
           </p>
         </div>
 
         
 
-        <div className="flex flex-col items-  end w-55 mr-20 mb-20">
-          <img src={logo} className="w-55" alt="Chronos Logo" />
+        <div className="flex flex-col items-start md:items-end w-32 md:w-55 ml-0 md:mr-20 mb-10 md:mb-20">
+          <img src={logo} className="w-full" alt="Chronos Logo" />
         </div>
       </div>
 
       {/* RIGHT SIDE */}
-      <div className="w-1/2 bg-[#1E1E1E] flex items-center justify-center">
+      <div className="w-full md:w-1/2 bg-[#1E1E1E] flex items-center justify-center p-8 md:p-0 py-16">
 
         <form onSubmit={handleSubmit} className="w-[400px] text-white">
 
@@ -119,7 +122,7 @@ function Login() {
             </div>
           )}
 
-           <h1 className="text-3xl font-bold mb-2">
+          <h1 className="text-3xl font-bold mb-2">
             Login to <span className="text-[#D4AF37] tracking-widest font-playfair">CHRONOS</span>
           </h1>
 
@@ -127,37 +130,35 @@ function Login() {
             Enter your credentials to continue
           </p>
 
-          {/* Email */}
           <div className="mb-5">
             <label className="text-sm text-gray-300"> User name or email</label>
-          <input
-            type="email"
-            name="email"
-            placeholder="Your name or email"
-            onChange={handleChange}
-            className="w-full mt-2 p-3 mb-5 rounded-md bg-transparent border border-[#D4AF37] outline-none"
-          />
+            <input
+              type="email"
+              name="email"
+              placeholder="Your name or email"
+              onChange={handleChange}
+              className="w-full mt-2 p-3 mb-5 rounded-md bg-transparent border border-[#D4AF37] outline-none"
+            />
           </div>
 
-          {/* Password */}
           <div className="mb-5">
             <label className="text-sm text-gray-300">Password</label>
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            onChange={handleChange}
-            className="w-full mt-2 mb-5 p-3 rounded-md bg-transparent border border-[#D4AF37] outline-none"
-          />
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              onChange={handleChange}
+              className="w-full mt-2 mb-5 p-3 rounded-md bg-transparent border border-[#D4AF37] outline-none"
+            />
           </div>
 
-          {/* Button */}
           <button 
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
             className="w-full bg-[#D4AF37] text-black py-3 rounded-md font-semibold hover:bg-yellow-400 transition">
             Login In
           </button>
+
+
 
           {/* Divider */}
           <div className="flex items-center my-6">
@@ -187,11 +188,15 @@ function Login() {
             </span>
           </p>
 
-          <p className="text-gray-400 text-sm text-center mt-10">
+          <p className="text-gray-400 text-sm text-center mt-10 flex items-center justify-center gap-2">
             If you are an admin you can login here :{" "}
-            <span onClick={() => window.location.href = "http://localhost:5174/"} className="cursor-pointer text-white">
-              Login
-            </span>
+            <button 
+              type="button"
+              onClick={() => window.open("http://localhost:5174/", "_blank")} 
+              className="text-[#D4AF37] font-bold hover:underline cursor-pointer transition-all hover:scale-105"
+            >
+              Admin Portal
+            </button>
           </p>
 
         </form>

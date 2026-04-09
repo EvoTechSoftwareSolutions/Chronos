@@ -1,0 +1,256 @@
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: #fff;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #333;
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.settings-header p {
+  color: #888;
+  margin: 0;
+  font-size: 14px;
+}
+
+.settings-layout {
+  display: flex;
+  gap: 40px;
+  position: relative;
+  min-height: 800px;
+}
+
+.settings-forms {
+  flex: 1.5;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding-bottom: 50px;
+  position: relative;
+  z-index: 2;
+}
+
+.settings-section {
+  background: #181818;
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #222;
+}
+
+.settings-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #eee;
+}
+
+.form-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #aaa;
+  font-size: 13px;
+}
+
+.form-group input {
+  background: #111;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 14px 15px;
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.form-group input:focus {
+  border-color: #d4af37;
+}
+
+.toggle-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #222;
+}
+
+.toggle-group label {
+  color: #ccc;
+  font-size: 14px;
+}
+
+/* Toggle Switch Styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #333;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #d4af37;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.color-picker {
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.mt-3 {
+  margin-top: 20px;
+}
+
+/* Settings Background Styling */
+.settings-background {
+  flex: 1;
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 350px;
+  overflow: hidden;
+}
+
+.bg-abstract {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 150%;
+  height: 150%;
+  object-fit: cover;
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-watch-container {
+  position: absolute;
+  top: 50%;
+  right: 50px;
+  transform: translateY(-50%);
+  width: 450px;
+  height: 700px;
+  z-index: 1;
+}
+
+.bg-watch-title-new {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bg-watch-title-new h2 {
+  font-size: 32px;
+  color: #d4af37;
+  letter-spacing: 5px;
+  margin: 0;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: 400;
+}
+
+.title-divider {
+  width: 50px;
+  height: 1px;
+  background-color: #d4af37;
+  margin: 8px 0;
+}
+
+.bg-watch-title-new p {
+  color: #fff;
+  letter-spacing: 4px;
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.stacked-watches {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stack-img {
+  position: absolute;
+  object-fit: contain;
+  filter: drop-shadow(-10px 10px 20px rgba(0,0,0,0.8)) brightness(0.85);
+  z-index: 1;
+  pointer-events: auto;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), z-index 0.3s, filter 0.3s;
+}
+
+.stack-img:hover {
+  transform: scale(1.1) translateY(-5px) !important;
+  z-index: 20 !important;
+  filter: drop-shadow(-15px 15px 30px rgba(0,0,0,1)) brightness(1);
+}
+
+.watch1 { top: 250px; left: 20px; z-index: 10; width: 300px; transform: rotate(-10deg); }
+.watch2 { top: 100px; right: 40px; z-index: 5; width: 240px; transform: rotate(18deg); }
+.watch3 { top: 380px; right: 20px; z-index: 8; width: 250px; transform: rotate(-15deg); }
+.watch4 { top: 520px; left: 50px; z-index: 4; width: 210px; transform: rotate(8deg); }

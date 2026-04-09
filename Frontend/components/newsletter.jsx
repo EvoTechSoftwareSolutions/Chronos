@@ -53,41 +53,41 @@ function Newsletter() {
   };
 
   return (
-    <section className="w-full px-8 py-20 relative text-white">
-      <div className="max-w-5xl mx-auto bg-[#1A1A1A] border border-[#D4AF37]/40 rounded-lg p-10 md:p-16 relative shadow-[0_0_15px_rgba(212,175,55,0.1)]">
+    <section className="w-full px-6 sm:px-10 lg:px-8 py-16 lg:py-20 relative text-white">
+      <div className="max-w-5xl mx-auto bg-[#1A1A1A] border border-[#D4AF37]/40 rounded-lg p-8 sm:p-12 lg:p-16 relative shadow-[0_0_15px_rgba(212,175,55,0.1)]">
         
         {/* Title Container */}
-        <div className="text-center mb-16">
-          <h4 className="text-[#D4AF37] uppercase tracking-[0.2em] font-serif text-sm mb-4 font-bold">News Letter</h4>
-          <h2 className="text-3xl md:text-5xl font-serif mb-4 tracking-wide text-gray-100">JOIN THE INNER CIRCLE</h2>
-          <p className="text-gray-300 text-sm md:text-base max-w-xl mx-auto">
+        <div className="text-center mb-10 lg:mb-16">
+          <h4 className="text-[#D4AF37] uppercase tracking-[0.2em] font-serif text-xs min-h-[14px] sm:text-sm mb-4 font-bold">News Letter</h4>
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-serif mb-4 tracking-wide text-gray-100 uppercase">Join The Inner Circle</h2>
+          <p className="text-gray-300 text-xs sm:text-sm lg:text-base max-w-xl mx-auto opacity-80">
             Be the first to know about new releases, exclusive events, and members-only offers.
           </p>
-          <div className="w-16 h-0.5 bg-[#D4AF37] mx-auto mt-8"></div>
+          <div className="w-16 h-0.5 bg-[#D4AF37] mx-auto mt-6 lg:mt-8"></div>
         </div>
 
         {/* Content Container */}
-        <div className="flex flex-col md:flex-row gap-12 md:gap-8 justify-between items-center max-w-4xl mx-auto">
+        <div className="flex flex-col md:flex-row gap-10 md:gap-8 justify-between items-center max-w-4xl mx-auto">
           
           {/* Left Side: Features */}
-          <div className="w-full md:w-1/2 flex flex-col gap-5 pl-4 md:pl-0 list-none">
+          <div className="w-full md:w-1/2 flex flex-col gap-4 sm:gap-5 list-none">
             <div className="flex items-center gap-4">
-              <CheckIcon className="text-[#D4AF37] flex-shrink-0" />
-              <span className="text-gray-200 lg:text-lg">Early access to new collections</span>
+              <CheckIcon className="text-[#D4AF37] flex-shrink-0 w-5 h-5 lg:w-6 lg:h-6" />
+              <span className="text-gray-200 text-sm sm:text-base lg:text-lg">Early access to new collections</span>
             </div>
             <div className="flex items-center gap-4">
-              <CheckIcon className="text-[#D4AF37] flex-shrink-0" />
-              <span className="text-gray-200 lg:text-lg">Exclusive member discounts</span>
+              <CheckIcon className="text-[#D4AF37] flex-shrink-0 w-5 h-5 lg:w-6 lg:h-6" />
+              <span className="text-gray-200 text-sm sm:text-base lg:text-lg">Exclusive member discounts</span>
             </div>
             <div className="flex items-center gap-4">
-              <CheckIcon className="text-[#D4AF37] flex-shrink-0" />
-              <span className="text-gray-200 lg:text-lg">Invites to private events</span>
+              <CheckIcon className="text-[#D4AF37] flex-shrink-0 w-5 h-5 lg:w-6 lg:h-6" />
+              <span className="text-gray-200 text-sm sm:text-base lg:text-lg">Invites to private events</span>
             </div>
           </div>
 
           {/* Right Side: Form */}
           <div className="w-full md:w-1/2 max-w-sm">
-            <form onSubmit={handleSubscribe} className="flex flex-col gap-5">
+            <form onSubmit={handleSubscribe} className="flex flex-col gap-4 lg:gap-5">
               <div>
                 <input 
                   type="email" 
@@ -96,21 +96,21 @@ function Newsletter() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
-                  className="w-full bg-[#1A1A1A] border border-gray-600 text-white rounded-md px-5 py-3 focus:outline-none focus:border-[#D4AF37] transition-colors disabled:opacity-50"
+                  className="w-full bg-[#1A1A1A] border border-gray-600 text-white rounded-md px-5 py-3 focus:outline-none focus:border-[#D4AF37] transition-colors disabled:opacity-50 text-sm lg:text-base"
                   style={{ backgroundColor: 'rgb(26, 26, 26)' }}
                 />
               </div>
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-[#D4AF37] text-black font-bold tracking-wide rounded-md px-5 py-3 hover:bg-[#E5C158] transition-colors disabled:opacity-75 disabled:cursor-not-allowed"
+                className="w-full bg-[#D4AF37] text-black font-bold tracking-wide rounded-md px-5 py-3 hover:bg-[#E5C158] transition-colors disabled:opacity-75 disabled:cursor-not-allowed text-xs sm:text-sm lg:text-base uppercase"
               >
                 {loading ? 'Subscribing...' : 'Subscribe'}
               </button>
               
               {/* Status Message */}
               {status && (
-                <p className={`text-sm text-center transition-opacity ${status.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                <p className={`text-[10px] sm:text-xs lg:text-sm text-center transition-opacity ${status.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
                   {status.message}
                 </p>
               )}
@@ -121,22 +121,22 @@ function Newsletter() {
       </div>
 
       {/* Embedded Footer Logo & Scroll To Top */}
-      <div className="max-w-7xl mx-auto flex items-center justify-center relative mt-24">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 md:gap-0 relative mt-20 lg:mt-24">
         
         {/* Center Logo */}
         <div className="text-center flex flex-col items-center">
-          <h2 className="text-[#D4AF37] tracking-[0.25em] text-2xl font-serif mb-1">CHRONOS</h2>
-          <p className="text-white text-[10px] uppercase tracking-widest opacity-80">Watches</p>
+          <h2 className="text-[#D4AF37] tracking-[0.25em] text-xl lg:text-2xl font-serif mb-1">CHRONOS</h2>
+          <p className="text-white text-[9px] lg:text-[10px] uppercase tracking-widest opacity-80">Watches</p>
         </div>
 
-        {/* Scroll To Top Button - Right Aligned (Absolute) */}
+        {/* Scroll To Top Button - Right Aligned (Absolute on desktop, relative on mobile) */}
         <button 
           onClick={scrollToTop}
           type="button"
-          className="absolute right-0 w-12 h-12 rounded-full border border-[#D4AF37]/50 flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-colors shadow-lg group mr-4 md:mr-0"
+          className="md:absolute right-0 w-10 h-10 lg:w-12 lg:h-12 rounded-full border border-[#D4AF37]/50 flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-colors shadow-lg group"
           aria-label="Scroll to top"
         >
-          <ArrowUpIcon className="group-hover:-translate-y-1 transition-transform duration-300" />
+          <ArrowUpIcon className="group-hover:-translate-y-1 transition-transform duration-300 w-4 h-4 lg:w-5 lg:h-5" />
         </button>
 
       </div>

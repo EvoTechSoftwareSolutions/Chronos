@@ -5,17 +5,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useCart } from '../../context/CartContext';
 
-// ─── Related products (Same as ShippingDetails for consistency) ─────────────────────────
-import rImg1 from '../../assets/images/products/latest1.png';
-import rImg2 from '../../assets/images/products/latest2.png';
-import rImg3 from '../../assets/images/products/latest3.png';
-
-const RELATED = [
-  { id: 'r1', brand: 'ROLEX', name: 'Submariner Black',       priceNum: 80,  image: rImg1 },
-  { id: 'r2', brand: 'ROLEX', name: 'Royal Chronograph Gold', priceNum: 110, image: rImg2 },
-  { id: 'r3', brand: 'OMEGA', name: 'Ocean Blue Master',      priceNum: 98,  image: rImg3 },
-];
-
+// ─── Constants ─────────────────────────────────────────────────────────
 const SHIPPING_METHODS = [
   {
     id: 'standard',
@@ -77,8 +67,8 @@ function ShippingMethod() {
     const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
     return s + price * i.quantity;
   }, 0);
-  const discountAmt = Math.round(subtotal * 0.15);
-  const total = subtotal - discountAmt;
+  const discountAmt = 0;
+  const total = subtotal;
 
   const handleContinueToPayment = () => {
     setShippingMethod(selectedMethod);
@@ -114,21 +104,22 @@ function ShippingMethod() {
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pt-36 pb-8 text-left">
-          <h1 className="font-playfair text-4xl md:text-5xl text-white tracking-widest uppercase">
-            Checkout - Shipping Method
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 pt-28 md:pt-36 pb-8 text-center md:text-left">
+          <h1 className="font-playfair uppercase tracking-widest text-white leading-tight"
+              style={{ fontSize: 'clamp(1.8rem, 6vw, 3.5rem)' }}>
+            Shipping Method
           </h1>
-          <div className="w-24 h-[3px] bg-[#D4AF37] mt-4" />
+          <div className="w-16 h-[2px] bg-[#D4AF37] mt-3 mx-auto md:ml-0" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pb-20">
-          <div className="grid grid-cols-1 lg:grid-cols-[60%_35%] gap-12 items-start">
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 pb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-[62%_33%] gap-10 lg:gap-16 items-start">
             
             {/* LEFT — Shipping Method Options */}
-            <div className="bg-[#111111]/80 backdrop-blur-md rounded-2xl border border-[#2a2a2a] p-8 md:p-10">
-              <h2 className="text-white font-medium tracking-wide text-xl mb-8">Select a Option</h2>
+            <div className="bg-[#111111]/80 backdrop-blur-md rounded-2xl border border-[#2a2a2a] p-6 sm:p-8 md:p-10 shadow-2xl">
+              <h2 className="text-white font-medium tracking-wide text-xl mb-8 border-b border-white/5 pb-4">Select Delivery Option</h2>
               
-              {error && <p className="text-red-500 mb-6 text-sm">{error}</p>}
+              {error && <p className="text-red-500 mb-6 text-sm bg-red-500/10 p-3 rounded-lg border border-red-500/20">{error}</p>}
 
               <div className="flex flex-col gap-4">
                 {SHIPPING_METHODS.map((method) => (
@@ -213,10 +204,6 @@ function ShippingMethod() {
                     <span className="text-white">$ {fmt(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Discount</span>
-                    <span className="text-[#D4AF37]">15%</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span>Shipping</span>
                     <span className="text-white">Free</span>
                   </div>
@@ -231,36 +218,6 @@ function ShippingMethod() {
               </div>
             </div>
 
-          </div>
-        </div>
-
-        {/* RELATED SECTION */}
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pb-24">
-          <div className="text-center mb-14">
-            <h2 className="font-playfair text-3xl md:text-4xl text-white tracking-widest uppercase">You May Also Like</h2>
-            <div className="w-16 h-[2px] bg-[#D4AF37] mx-auto mt-4" />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {RELATED.map((p) => (
-              <div key={p.id} className="group bg-[#111111] rounded-xl border border-[#2a2a2a] hover:border-[#D4AF37] transition-all duration-500 overflow-hidden cursor-pointer">
-                <div className="aspect-square bg-[#181818] overflow-hidden relative">
-                  <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                </div>
-                <div className="p-6">
-                  <p className="text-[#D4AF37] text-[10px] tracking-[0.4em] uppercase font-bold mb-2">{p.brand}</p>
-                  <div className="w-full h-px bg-[#D4AF37]/30 mb-4" />
-                  <h4 className="text-white text-[13px] font-normal uppercase tracking-widest leading-snug mb-4 h-10 overflow-hidden">{p.name}</h4>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white text-sm font-semibold tracking-wide">$ {fmt(p.priceNum)}</span>
-                    <button className="w-9 h-9 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all">
-                      <CartBtnIcon />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 

@@ -5,7 +5,10 @@ import Footer from '../../components/Footer';
 import ScrollToTopButton from '../../components/ScrollToTopButton';
 import './Contact.css';
 import backgroundImg from '../../assets/images/ui/background.png';
-
+import rolexLogo from '../../assets/images/ui/rolex.png';
+import omegaLogo from '../../assets/images/ui/omega.png';
+import casioLogo from '../../assets/images/ui/casio.png';
+import tissotLogo from '../../assets/images/ui/tissot.png';
 function Contact() {
   const [activeFaq, setActiveFaq] = useState(0);
 
@@ -60,7 +63,7 @@ function Contact() {
     setActiveFaq(activeFaq === index ? null : index);
   };
 
-  const logos = [backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg, backgroundImg];
+  const logos = [rolexLogo, omegaLogo, casioLogo, tissotLogo, rolexLogo, omegaLogo, casioLogo, tissotLogo];
 
   return (
     <div className="contact-container min-h-screen text-white relative">

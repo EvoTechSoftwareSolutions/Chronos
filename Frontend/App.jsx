@@ -11,10 +11,7 @@ import About from "./pages/About/About";
 import Contact from "./pages/Contact/Contact";
 import Cart from "./pages/Cart/Cart";
 import Profile from "./pages/Profile/Profile";
-import LuxuryPage from "./pages/Category/LuxuryPage";
-import AnalogPage from "./pages/Category/AnalogPage";
-import SportPage from "./pages/Category/SportPage";
-import SmartPage from "./pages/Category/SmartPage";
+import CategoryPage from "./pages/Category/CategoryPage";
 import ProductDetail from "./pages/ProductDetail/ProductDetail";
 import ShippingDetails from "./pages/Checkout/ShippingDetails";
 import ShippingMethod from "./pages/Checkout/ShippingMethod";
@@ -37,10 +34,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/category/luxury" element={<LuxuryPage />} />
-            <Route path="/category/analog" element={<AnalogPage />} />
-            <Route path="/category/sport" element={<SportPage />} />
-            <Route path="/category/smart" element={<SmartPage />} />
+            <Route path="/category/:categoryName" element={<CategoryPage />} />
             <Route path="/product/:category/:id" element={<ProductDetail />} />
             <Route path="/checkout/shipping" element={<ShippingDetails />} />
             <Route path="/checkout/shipping-method" element={<ShippingMethod />} />

@@ -24,7 +24,7 @@ const COLOR_NAMES = {
   '#1E88E5': 'Blue',
   '#FFFFFF': 'White',
 };
-const DISCOUNT = 0.15;
+const DISCOUNT = 0;
 
 function fmt(n) {
   return Number(n).toLocaleString('en-US');
@@ -72,11 +72,11 @@ function CartItemCard({ item, onRemove, onQtyChange }) {
           alt={item.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        {/* Delete button — overlaid top-right */}
+        {/* Delete button — always visible on touch, hover on desktop */}
         <button
           onClick={() => onRemove(item.cartId)}
           aria-label="Remove item"
-          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-black/90 transition-all duration-200 opacity-0 group-hover:opacity-100"
+          className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-black/90 transition-all duration-200 lg:opacity-0 lg:group-hover:opacity-100"
         >
           <TrashIcon />
         </button>
@@ -197,11 +197,12 @@ function Cart() {
 
       <div className="relative z-10">
         {/* ── Page Header ─────────────────────────────────────────────────── */}
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pt-36 pb-8">
-          <h1 className="font-playfair text-4xl md:text-5xl text-white tracking-wide capitalize">
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 pt-28 md:pt-36 pb-8 text-center md:text-left">
+          <h1 className="font-playfair uppercase tracking-widest text-white leading-tight"
+              style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)' }}>
             Shopping Cart
           </h1>
-          <div className="w-16 h-[2px] bg-[#D4AF37] mt-3" />
+          <div className="w-16 h-[2px] bg-[#D4AF37] mt-3 mx-auto md:ml-0" />
         </div>
 
         {/* ── Status Banner ────────────────────────────────────────────────── */}
@@ -224,8 +225,8 @@ function Cart() {
 
         {/* ── Main Cart Grid ───────────────────────────────────────────────── */}
         {cartItems.length > 0 && (
-          <div className="max-w-7xl mx-auto px-6 md:px-16 pb-20">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="max-w-7xl mx-auto px-6 lg:px-16 pb-20">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
 
               {/* LEFT — Cart Items (2-col card grid) ─────────────────────── */}
               <div className="lg:col-span-2">
@@ -253,10 +254,6 @@ function Cart() {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 tracking-wide text-xs">Amount</span>
                       <span className="text-white font-medium text-xs">$ {fmt(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 tracking-wide text-xs">Discount</span>
-                      <span className="text-[#D4AF37] font-medium text-xs">15%</span>
                     </div>
                     {cartItems.length === 1 && (
                       <div className="flex justify-between items-center">
@@ -302,12 +299,12 @@ function Cart() {
         )}
 
         {/* ── You May Also Like ─────────────────────────────────────────────── */}
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pb-24">
-          <div className="text-center mb-14">
-            <h2 className="font-playfair text-3xl md:text-4xl text-white tracking-wide">
+        <div className="max-w-7xl mx-auto px-6 lg:px-16 pb-24">
+          <div className="text-center mb-10 md:mb-14">
+            <h2 className="font-playfair text-3xl sm:text-4xl text-white tracking-wide uppercase">
               You May Also Like
             </h2>
-            <div className="w-16 h-[2px] bg-[#D4AF37] mx-auto mt-4" />
+            <div className="w-16 h-[2.5px] bg-[#D4AF37] mx-auto mt-4" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

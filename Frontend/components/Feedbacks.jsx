@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const QuoteIcon = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -13,68 +14,63 @@ const StarIcon = ({ className }) => (
   </svg>
 );
 
-const feedbacks = [
-  {
-    id: 1,
-    name: 'Nelson Perera',
-    role: 'Businessman',
-    initials: 'NP',
-    review: "I've purchased from many luxury retailers, but CHRONOS stands apart. The attention to detail from packaging to after sales are great",
-    purchased: 'Royal Chronograph Gold',
-    color: 'Gold'
-  },
-  {
-    id: 2,
-    name: 'Nelson Perera',
-    role: 'Businessman',
-    initials: 'NP',
-    review: "I've purchased from many luxury retailers, but CHRONOS stands apart. The attention to detail from packaging to after sales are great",
-    purchased: 'Royal Chronograph Gold',
-    color: 'Gold'
-  },
-  {
-    id: 3,
-    name: 'Nelson Perera',
-    role: 'Businessman',
-    initials: 'NP',
-    review: "I've purchased from many luxury retailers, but CHRONOS stands apart. The attention to detail from packaging to after sales are great",
-    purchased: 'Royal Chronograph Gold',
-    color: 'Gold'
-  }
-];
-
 function Feedbacks() {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axios.get('http://localhost:5000/api/reviews-featured')
+      .then(res => {
+        setReviews(res.data || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching featured reviews:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  const getInitials = (name) => {
+    if (!name) return "NP";
+    const parts = name.split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  if (loading) return null; // Or a subtle skeleton
+  if (reviews.length === 0) return null; // Hide section if no reviews match criteria
+
   return (
-    <section className="py-20 px-8 relative w-full max-w-7xl mx-auto">
+    <section className="py-12 lg:py-20 px-6 sm:px-10 lg:px-8 relative w-full max-w-7xl mx-auto">
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16">
-        <div className="mb-8 md:mb-0">
-          <h3 className="text-[#D4AF37] text-xl font-serif tracking-[0.2em]">CHRONOS</h3>
-          <p className="text-white text-xs uppercase tracking-widest mt-1 opacity-80 text-center md:text-left">Watches</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 lg:mb-16">
+        <div className="mb-6 md:mb-0 w-full md:w-auto text-center md:text-left">
+          <h3 className="text-[#D4AF37] text-lg lg:text-xl font-serif tracking-[0.2em]">CHRONOS</h3>
+          <p className="text-white text-[10px] sm:text-xs uppercase tracking-widest mt-1 opacity-80">Watches</p>
         </div>
-        <div className="text-right">
-          <h4 className="text-[#D4AF37] uppercase tracking-widest text-sm mb-2 font-serif text-right">Feedbacks</h4>
-          <h2 className="text-white text-4xl md:text-5xl font-serif tracking-wide text-right">CLIENTS LOVE</h2>
-          <div className="w-16 h-0.5 bg-[#D4AF37] mt-6 ml-auto"></div>
+        <div className="w-full md:w-auto text-center md:text-right">
+          <h4 className="text-[#D4AF37] uppercase tracking-widest text-xs sm:text-sm mb-2 font-serif text-center md:text-right">Feedbacks</h4>
+          <h2 className="text-white text-3xl sm:text-4xl lg:text-5xl font-serif tracking-wide text-center md:text-right uppercase">Clients Love</h2>
+          <div className="w-16 h-0.5 bg-[#D4AF37] mt-4 lg:mt-6 mx-auto md:ml-auto md:mr-0"></div>
         </div>
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {feedbacks.map((feedback) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {reviews.map((feedback) => (
           <div 
             key={feedback.id}
-            className="rounded-2xl bg-[#1E1E1E]/60 border border-gray-800 hover:border-[#D4AF37] p-8 transition-colors duration-500 backdrop-blur-sm shadow-xl"
+            className="rounded-2xl bg-[#1E1E1E]/60 border border-gray-800 hover:border-[#D4AF37] p-8 transition-colors duration-500 backdrop-blur-sm shadow-xl flex flex-col h-full"
           >
             {/* Card Header */}
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full border border-[#D4AF37] flex flex-col justify-center items-center text-[#D4AF37] font-serif text-sm">
-                  {feedback.initials}
+                  {getInitials(feedback.customer_name)}
                 </div>
                 <div>
-                  <h4 className="text-white font-medium">{feedback.name}</h4>
-                  <p className="text-gray-400 text-xs">{feedback.role}</p>
+                  <h4 className="text-white font-medium">{feedback.customer_name}</h4>
+                  <p className="text-gray-400 text-xs">Verified Collector</p>
                 </div>
               </div>
               <QuoteIcon className="text-[#D4AF37]/50" />
@@ -88,19 +84,19 @@ function Feedbacks() {
             </div>
 
             {/* Review Text */}
-            <p className="text-gray-300 text-sm leading-relaxed mb-6">
-              "{feedback.review}"
+            <p className="text-gray-300 text-sm leading-relaxed mb-6 flex-grow italic">
+              "{feedback.comment}"
             </p>
 
             {/* Product Details */}
-            <div className="flex flex-col gap-2 text-sm">
+            <div className="flex flex-col gap-2 text-sm mt-auto border-t border-white/5 pt-4">
               <div className="flex items-center">
                 <span className="text-[#D4AF37] w-24">Purchased</span>
-                <span className="text-gray-300">: {feedback.purchased}</span>
+                <span className="text-gray-100">: {feedback.product_name || "Luxury Timepiece"}</span>
               </div>
               <div className="flex items-center">
                 <span className="text-[#D4AF37] w-24">Color</span>
-                <span className="text-gray-300">: {feedback.color}</span>
+                <span className="text-gray-300">: {feedback.product_color || "Obsidian Black"}</span>
               </div>
             </div>
           </div>
