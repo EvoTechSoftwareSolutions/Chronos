@@ -2,14 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 
-import luxuryImg from '../assets/canalog.png';
-import sportImg from '../assets/Cimg1.png';
-import analogImg from '../assets/csmart.png';
-import smartImg from '../assets/csport.png';
+import luxuryImg from '../assets/images/categories/canalog.png';
+import sportImg from '../assets/images/categories/Cimg1.png';
+import analogImg from '../assets/images/categories/csmart.png';
+import smartImg from '../assets/images/categories/csport.png';
 
-function CategoryCard({ id, title, items, image, imagePlaceholder, heightClass }) {
+function CategoryCard({ id, to, title, items, image, imagePlaceholder, heightClass }) {
   return (
-    <Link id={id} to="/collection" className={`relative rounded-xl overflow-hidden group cursor-pointer block border border-transparent hover:border-[#D4AF37] transition-all duration-500 w-full lg:w-72 bg-[#111111] shadow-2xl ${heightClass}`}>
+    <Link id={id} to={to} className={`relative rounded-xl overflow-hidden group cursor-pointer block border border-transparent hover:border-[#D4AF37] transition-all duration-500 w-full lg:w-72 bg-[#111111] shadow-2xl ${heightClass}`}>
       
       {/* Simulated Image Background */}
       <div className="absolute inset-0 bg-black/60 transition-transform duration-700 group-hover:scale-110">
@@ -76,6 +76,7 @@ function Categories() {
         <div className="w-full flex justify-center lg:justify-end">
           <CategoryCard 
             id="category-luxury"
+            to="/category/luxury"
             image={luxuryImg}
             title="Luxury" 
             items="24 Items" 
@@ -88,6 +89,7 @@ function Categories() {
         <div className="w-full flex flex-col gap-8 items-center lg:-mt-8 lg:mb-8">
           <CategoryCard 
             id="category-sport"
+            to="/category/sport"
             image={sportImg}
             title="Sport" 
             items="18 Items" 
@@ -96,6 +98,7 @@ function Categories() {
           />
           <CategoryCard 
             id="category-analog"
+            to="/category/analog"
             image={analogImg}
             title="Analog" 
             items="32 Items" 
@@ -108,6 +111,7 @@ function Categories() {
         <div className="w-full flex justify-center lg:justify-start">
           <CategoryCard 
             id="category-smart"
+            to="/category/smart"
             image={smartImg}
             title="Smart" 
             items="12 Items" 

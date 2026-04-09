@@ -1,8 +1,12 @@
-import background from "../../assets/background.png";
+import background from "../../assets/images/ui/background.png";
 import Navbar from "../../components/Navbar";
 import Hero from "../../components/Hero";
+import LatestArrivals from "../../components/LatestArrivals";
 import BestSeller from "../../components/BestSeller";
 import Categories from "../../components/Categories";
+import Feedbacks from "../../components/Feedbacks";
+import Newsletter from "../../components/Newsletter";
+import Footer from "../../components/Footer";
 
 function Home() {
   return (
@@ -20,6 +24,10 @@ function Home() {
         <Hero />
         <Categories />
         <BestSeller />
+        <LatestArrivals />
+        <Feedbacks />
+        <Newsletter />
+        <Footer />
         
       </div>
     </div>

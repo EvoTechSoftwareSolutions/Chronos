@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import heroBg from '../assets/hero-bg.png';
+import { useNavigate } from 'react-router-dom';
+import heroBg from '../assets/images/hero/hero-bg.png';
 
 function Hero() {
+  const navigate = useNavigate();
   const [targetDate, setTargetDate] = useState(() => {
     return new Date(new Date().getTime() + (3 * 24 * 60 * 60 * 1000) + (10 * 60 * 60 * 1000));
   });
@@ -12,7 +14,7 @@ function Hero() {
   const watches = [
     {
       id: 1,
-      image: "../assets/Heroimg1.png",
+      image: "../assets/images/hero/Heroimg1.png",
       imagePlaceholder: "Watch 1 Image",
       badgePrefix: "LATEST",
       badgeSuffix: "ARRIVAL",
@@ -20,7 +22,7 @@ function Hero() {
     },
     {
       id: 2,
-      image: "../assets/heroimage2.png",
+      image: "../assets/images/hero/heroimage2.png",
       imagePlaceholder: "Watch 2 Image",
       badgePrefix: "POPULAR",
       badgeSuffix: "WATCH",
@@ -28,7 +30,7 @@ function Hero() {
     },
     {
       id: 3,
-      image: "../assets/heroimage3.png",
+      image: "../assets/images/hero/heroimage3.png",
       imagePlaceholder: "Watch 3 Image",
       badgePrefix: "BEST",
       badgeSuffix: "SELLING",
@@ -79,7 +81,10 @@ function Hero() {
         </p>
         
         <div className="mb-14">
-          <button className="bg-[#D4AF37] text-black px-8 py-3.5 rounded-lg font-bold hover:bg-yellow-400 transition transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg shadow-[#D4AF37]/20 text-[15px]">
+          <button 
+            onClick={() => navigate('/category/luxury')}
+            className="bg-[#D4AF37] text-black px-8 py-3.5 rounded-lg font-bold hover:bg-yellow-400 transition transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg shadow-[#D4AF37]/20 text-[15px]"
+          >
             Shop Now 
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />

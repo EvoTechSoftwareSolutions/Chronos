@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useGoogleLogin } from "@react-oauth/google";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/images/ui/logo.png";
 
 function Login() {
 
@@ -32,6 +32,7 @@ function Login() {
       const res = await axios.post("http://localhost:5000/login", formData);
 
       if (res.data.success) {
+        localStorage.setItem("user", JSON.stringify(res.data.user || { email: formData.email }));
         setMessage("Login successful");
         setIsSuccess(true);
 
@@ -183,6 +184,13 @@ function Login() {
             Don't have an account?{" "}
             <span onClick={() => navigate("/")} className="cursor-pointer text-white">
               Sign Up
+            </span>
+          </p>
+
+          <p className="text-gray-400 text-sm text-center mt-10">
+            If you are an admin you can login here :{" "}
+            <span onClick={() => window.location.href = "http://localhost:5174/"} className="cursor-pointer text-white">
+              Login
             </span>
           </p>
 
