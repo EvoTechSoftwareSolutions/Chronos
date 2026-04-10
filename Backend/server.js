@@ -257,6 +257,33 @@ db.connect((err) => {
       }
     });
 
+    const createAdminsSql = `
+      CREATE TABLE IF NOT EXISTS admins (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) DEFAULT 'Super Admin',
+        department VARCHAR(100),
+        phone VARCHAR(20),
+        bio TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    db.query(createAdminsSql, (err) => {
+      if (!err) {
+        db.query("SELECT COUNT(*) as count FROM admins", (err, result) => {
+          if (!err && result[0].count === 0) {
+            const hashedPassword = bcrypt.hashSync('admin123', 10);
+            const sql = "INSERT INTO admins (name, email, role, password) VALUES ('Admin', 'admin@chronos.com', 'Super Admin', ?)";
+            db.query(sql, [hashedPassword]);
+          }
+        });
+      }
+    });
+
     const createReviewsSql = `
       CREATE TABLE IF NOT EXISTS reviews (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -750,7 +777,7 @@ app.get("/api/products/search", (req, res) => {
   });
 });
 
-// *** ADMIN APIs ***
+//ADMIN APIs
 
 // LOGIN (Secure Database Driven Login)
 app.post("/api/admin/login", (req, res) => {

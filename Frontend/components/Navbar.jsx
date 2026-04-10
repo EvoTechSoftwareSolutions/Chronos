@@ -20,7 +20,7 @@ function Navbar() {
     { name: 'Contact', to: '/contact' },
   ];
 
-  // ... (handleSearchSubmit, useEffect, handleSuggestionClick remain the same) ...
+  //handleSearchSubmit, useEffect, handleSuggestionClick remain the same
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;

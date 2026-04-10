@@ -142,7 +142,7 @@ function PaymentDetails() {
           };
 
           window.payhere.onCompleted = function onCompleted(orderId) {
-            // Update status in DB as well (fallback for local webhook issues)
+            
             axios.post('http://localhost:5000/api/orders/update-payment-status', {
                orderId: orderId,
                status: 'Paid'
