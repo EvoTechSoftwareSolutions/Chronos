@@ -1,5 +1,4 @@
 const pool = require('../config/db');
-const bcrypt = require('bcryptjs');
 
 exports.login = async (req, res) => {
   try {
@@ -13,11 +12,8 @@ exports.login = async (req, res) => {
     
     if (rows.length > 0) {
       const admin = rows[0];
-      // Check if password matches hash (or plain text for initial transition)
-      const isMatch = await bcrypt.compare(password, admin.password);
-      const isPlainTextMatch = (password === admin.password);
-
-      if (isMatch || isPlainTextMatch) {
+      // Plain text password comparison
+      if (password === admin.password) {
         const { password: _, ...adminData } = admin;
         return res.status(200).json({ 
           message: 'Login successful', 

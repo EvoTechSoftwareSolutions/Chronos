@@ -62,7 +62,7 @@ function LatestArrivals() {
     e.stopPropagation();
     
     // Safety fallback for priceNum parsing to support older dummy data "$120.00"
-    const priceNum = parseFloat(watch.price.replace(/[,\$]/g, '')) || 0;
+    const priceNum = parseFloat(watch.price.replace(/[,\\$a-zA-Z\\s.]/g, '')) || 0;
 
     addToCart({
       id: watch.id,

@@ -1,5 +1,4 @@
 const db = require('../config/db');
-const bcrypt = require('bcryptjs');
 
 exports.getProfile = async (req, res) => {
   try {
@@ -89,6 +88,7 @@ exports.updateSecurity = async (req, res) => {
     const hashedNewPassword = await bcrypt.hash(newPassword, salt);
 
     await db.query('UPDATE admins SET password = ? WHERE id = ?', [hashedNewPassword, admin.id]);
+
 
     res.json({ message: 'Password updated successfully' });
   } catch (error) {

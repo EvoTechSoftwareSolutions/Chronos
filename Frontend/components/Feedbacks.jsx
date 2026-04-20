@@ -37,8 +37,8 @@ function Feedbacks() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  if (loading) return null; // Or a subtle skeleton
-  if (reviews.length === 0) return null; // Hide section if no reviews match criteria
+  if (loading) return null; 
+  if (reviews.length === 0) return null; 
 
   return (
     <section className="py-12 lg:py-20 px-6 sm:px-10 lg:px-8 relative w-full max-w-7xl mx-auto">

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+
 
 // Pages and Components
 import Login from './pages/Login';
@@ -13,6 +14,14 @@ import Notifications from './pages/Notifications';
 
 import Layout from './components/Layout';
 import { ModalProvider } from './context/ModalContext';
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
 
 function App() {
   const navigate = useNavigate();
@@ -29,6 +38,7 @@ function App() {
 
   return (
     <ModalProvider>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route element={<Layout />}>
@@ -39,10 +49,10 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/profile" element={<AdminProfile />} />
           <Route path="/notifications" element={<Notifications />} />
-
         </Route>
       </Routes>
     </ModalProvider>
+
   );
 }
 

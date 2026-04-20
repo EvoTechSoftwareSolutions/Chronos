@@ -1,5 +1,5 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CartProvider } from "./context/CartContext";
 import { PopupProvider } from "./context/PopupContext";
@@ -24,15 +24,25 @@ import Terms from "./pages/Terms/Terms";
 import AdminSSO from "./pages/AdminSSO";
 import AdminGateway from "./pages/AdminGateway";
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
+
 function App() {
   return (
     <PopupProvider>
       <CartProvider>
       <GoogleOAuthProvider clientId="90872154996-uovdvfs99noj5vm4iukv93lomlahks4f.apps.googleusercontent.com">
         <Router>
+          <ScrollToTop />
           <div className="relative">
             <PopupModal />
             <Routes>
+
             <Route path="/" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin-gateway" element={<AdminGateway />} />

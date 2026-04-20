@@ -5,7 +5,7 @@ import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import bcrypt from "bcryptjs";
+
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -279,9 +279,34 @@ db.connect((err) => {
       if (!err) {
         db.query("SELECT COUNT(*) as count FROM admin_profile", (err, result) => {
           if (!err && result[0].count === 0) {
-            const hashedPassword = bcrypt.hashSync('admin123', 10);
             const sql = "INSERT INTO admin_profile (name, email, role, password) VALUES ('Admin', 'admin@chronos.com', 'Super Admin', ?)";
-            db.query(sql, [hashedPassword]);
+            db.query(sql, ['admin123']);
+          }
+        });
+      }
+    });
+
+    const createAdminsSql = `
+      CREATE TABLE IF NOT EXISTS admins (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) DEFAULT 'Super Admin',
+        department VARCHAR(100),
+        phone VARCHAR(20),
+        bio TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    db.query(createAdminsSql, (err) => {
+      if (!err) {
+        db.query("SELECT COUNT(*) as count FROM admins", (err, result) => {
+          if (!err && result[0].count === 0) {
+            const sql = "INSERT INTO admins (name, email, role, password) VALUES ('Admin', 'admin@chronos.com', 'Super Admin', ?)";
+            db.query(sql, ['admin123']);
           }
         });
       }
@@ -320,12 +345,11 @@ db.connect((err) => {
 //REGISTER
 app.post("/register", (req, res) => {
   const { name, email, password } = req.body;
-  const hashedPassword = bcrypt.hashSync(password, 10);
   const account_id = 'ACC-' + crypto.randomBytes(3).toString('hex').toUpperCase();
 
   const sql = "INSERT INTO users (account_id, name, email, password) VALUES (?, ?, ?, ?)";
 
-  db.query(sql, [account_id, name, email, hashedPassword], (err, result) => {
+  db.query(sql, [account_id, name, email, password], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') return res.json({ success: false, message: "Email already exists" });
       return res.json({ success: false, message: "Error saving data" });
@@ -393,7 +417,7 @@ app.post("/login", (req, res) => {
 
     if (result.length > 0) {
       const user = result[0];
-      const isMatch = bcrypt.compareSync(password, user.password || "");
+      const isMatch = (password === user.password);
       if (isMatch) {
         return res.json({
           success: true,
@@ -890,7 +914,7 @@ app.get("/api/products/search", (req, res) => {
   });
 });
 
-// *** ADMIN APIs ***
+//ADMIN APIs
 
 // LOGIN (Secure Database Driven Login)
 app.post("/api/admin/login", (req, res) => {
@@ -902,7 +926,7 @@ app.post("/api/admin/login", (req, res) => {
     if (results.length === 0) return res.status(401).json({ error: "Invalid admin credentials" });
 
     const admin = results[0];
-    const isMatch = bcrypt.compareSync(password, admin.password);
+    const isMatch = (password === admin.password);
 
     if (isMatch) {
       // In a real production app, we would return a JWT token here
@@ -919,7 +943,7 @@ app.post("/api/admin/login", (req, res) => {
 // DASHBOARD
 app.get("/api/admin/dashboard", (req, res) => {
   const stats = {
-    revenue: { value: "$0.00" },
+    revenue: { value: "Rs. 0.00" },
     orders: { value: 0 },
     customers: { value: 0 },
     products: { value: 0 }
@@ -928,6 +952,7 @@ app.get("/api/admin/dashboard", (req, res) => {
   db.query("SELECT SUM(total) as revenue, COUNT(*) as count FROM orders WHERE order_status = 'Delivered'", (err, result) => {
     if (!err && result[0]) {
       stats.revenue.value = "Rs." + (result[0].revenue || 0).toLocaleString();
+
       stats.orders.value = result[0].count;
     }
 
@@ -940,6 +965,7 @@ app.get("/api/admin/dashboard", (req, res) => {
         db.query("SELECT * FROM orders ORDER BY id DESC", (err, allOrders) => {
           const orders = allOrders || [];
           const recentOrders = orders.slice(0, 5).map(o => {
+
             let parsedItems = [];
             try { parsedItems = JSON.parse(o.items); } catch (e) { }
             return {
@@ -949,6 +975,7 @@ app.get("/api/admin/dashboard", (req, res) => {
               amount: "Rs." + o.total,
               status: o.payment_status || "Pending"
             };
+
           });
 
           // Top Products Aggregation
@@ -1013,6 +1040,7 @@ app.post("/api/admin/products", upload.array("images", 5), (req, res) => {
   const imagesJson = JSON.stringify(imageUrls);
 
   const sql = `INSERT INTO products (name, price, stock_quantity, brand, category, color, strap_size, description, image_url, images) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
   const values = [name, "Rs." + Number(price).toLocaleString(), Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson];
 
   db.query(sql, values, (err) => {
@@ -1041,7 +1069,9 @@ app.put("/api/admin/products/:id", upload.array("images", 5), (req, res) => {
   const imagesJson = JSON.stringify(combinedImages);
 
   const sql = `UPDATE products SET name=?, price=?, stock_quantity=?, brand=?, category=?, color=?, strap_size=?, description=?, image_url=?, images=? WHERE id=?`;
+
   const values = [name, "Rs." + Number(price).toLocaleString(), Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson, id];
+
   db.query(sql, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
@@ -1141,12 +1171,14 @@ app.get("/api/admin/customers", (req, res) => {
     let active = 0; let newMonth = 0;
     const now = new Date();
     customers.forEach(c => {
+
       if (c.status === "Active" || c.status === "active") active++;
       if (c.status === "New" || c.status === "new") newMonth++;
       
       // Ensure join_date is a readable string
       if (c.join_date) c.join_date = new Date(c.join_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
       if (c.total_spent) c.total_spent = "Rs." + Number(c.total_spent).toLocaleString();
+
     });
 
     const stats = {
@@ -1196,6 +1228,7 @@ app.get("/api/admin/orders", (req, res) => {
     let pending = 0; let shipped = 0; let delivered = 0;
 
     const mapped = orders.map(o => {
+
       const stat = o.payment_status || "Pending";
       if (stat === "Pending") pending++;
       if (stat === "Shipped") shipped++;
@@ -1211,6 +1244,7 @@ app.get("/api/admin/orders", (req, res) => {
         total: "Rs." + o.total,
         status: stat
       };
+
     });
 
     const stats = {

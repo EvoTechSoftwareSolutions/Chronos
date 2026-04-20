@@ -59,6 +59,14 @@ function Hero() {
     return () => clearInterval(timer);
   }, [targetDate]);
 
+  // Auto-change watches every 5 seconds
+  useEffect(() => {
+    const watchTimer = setInterval(() => {
+      setCurrentWatch((prev) => (prev + 1) % watches.length);
+    }, 2500);
+    return () => clearInterval(watchTimer);
+  }, [watches.length]);
+
   return (
     <section 
       id="hero-watches"
@@ -81,7 +89,7 @@ function Hero() {
         
         <div className="mb-10 lg:mb-14">
           <button 
-            onClick={() => navigate('/category/luxury')}
+            onClick={() => navigate('/collection')}
             className="bg-[#D4AF37] text-black px-8 py-3.5 rounded-lg font-bold hover:bg-yellow-400 transition transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg shadow-[#D4AF37]/20 text-[15px]"
           >
             Shop Now 
@@ -109,7 +117,7 @@ function Hero() {
             </svg>
             <div className="flex flex-col text-left">
               <span className="text-white font-medium text-[11px] lg:text-[13px]">Free Delivery</span>
-              <span className="text-[9px] lg:text-[10px] text-gray-400">Upto $500</span>
+              <span className="text-[9px] lg:text-[10px] text-gray-400">Upto Rs. 500</span>
             </div>
           </div>
 
