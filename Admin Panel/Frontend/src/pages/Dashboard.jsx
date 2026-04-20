@@ -146,7 +146,7 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="month" stroke="#333" tick={{fill: '#666', fontSize: 12}} axisLine={false} tickLine={false} />
-                <YAxis dataKey="value" stroke="#333" tick={{fill: '#666', fontSize: 12}} axisLine={false} tickLine={false} tickFormatter={(val) => `$${val/1000}k`} />
+                <YAxis dataKey="value" stroke="#333" tick={{fill: '#666', fontSize: 12}} axisLine={false} tickLine={false} tickFormatter={(val) => `Rs. ${val/1000}k`} />
                 <Tooltip contentStyle={{backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px'}} itemStyle={{color: '#d4af37'}}/>
                 <Area type="monotone" dataKey="value" stroke="#d4af37" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
               </AreaChart>

@@ -40,7 +40,7 @@ function LatestArrivals() {
                 brand: p.brand,
                 name: p.name,
                 category: p.category || 'luxury',
-                price: String(p.price)+"$",
+                price: "Rs. " + String(p.price),
                 rating: p.feedback_rate || '0.0',
                 reviews: p.feedback_count || '0',
                 image: imgList[0] ? `http://localhost:5000${imgList[0]}` : p.image_url ? `http://localhost:5000${p.image_url}` : "",
@@ -62,7 +62,7 @@ function LatestArrivals() {
     e.stopPropagation();
     
     // Safety fallback for priceNum parsing to support older dummy data "$120.00"
-    const priceNum = parseFloat(watch.price.replace(/[,\$]/g, '')) || 0;
+    const priceNum = parseFloat(watch.price.replace(/[,\\$a-zA-Z\\s.]/g, '')) || 0;
 
     addToCart({
       id: watch.id,

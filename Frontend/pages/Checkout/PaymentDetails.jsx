@@ -4,6 +4,7 @@ import axios from 'axios';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useCart } from '../../context/CartContext';
+import emailjs from '@emailjs/browser';
 
 // Payment Logos
 import creditLogo from '../../assets/images/ui/credit.png';
@@ -77,6 +78,52 @@ function PaymentDetails() {
       .catch(console.error);
   }, []);
 
+  const sendOrderMails = (orderId) => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const profileEmail = user.email;
+    const shipEmail = shippingDetails?.email;
+    
+    // Format cart items
+    const itemsList = cartItems.map(item => 
+      `${item.quantity}x ${item.brand} ${item.name} - Rs. ${fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}`
+    ).join('\n<br>\n');
+    
+    // Address string
+    const addressStr = `${shippingDetails?.firstName} ${shippingDetails?.lastName}<br>${shippingDetails?.address}<br>${shippingDetails?.city}, ${shippingDetails?.province} ${shippingDetails?.zipCode}<br>Mobile: ${shippingDetails?.mobile}`;
+
+    const sendMail = (targetEmail) => {
+      const templateParams = {
+        to_email: targetEmail,
+        email: targetEmail,
+        user_email: targetEmail,
+        recipient_email: targetEmail,
+        customer_name: shippingDetails?.firstName || "Valued Customer",
+        order_id: String(orderId),
+        subtotal: fmt(subtotal),
+        total: fmt(total),
+        items_list: itemsList,
+        shipping_address: addressStr
+      };
+
+      emailjs.send(
+        'service_x486mx3',
+        'template_0wiujko',
+        templateParams,
+        '_VBkrk2a0KdGSbidM'
+      ).then(res => {
+        console.log("EmailJS Success:", res);
+      }).catch(err => {
+        console.error("EmailJS Error:", err);
+        alert(`EmailJS Failed: ${err.text || JSON.stringify(err)}\n\nIf you created a new EmailJS account, make sure to update the Public Key 'jRpr4VVc-GA7LLA3Z' in PaymentDetails.jsx!`);
+      });
+    };
+
+    // Send to shipping email
+    if (shipEmail) sendMail(shipEmail);
+    // Send to profile email if distinct
+    if (profileEmail && profileEmail !== shipEmail) sendMail(profileEmail);
+  };
+
   const handlePlaceOrder = async () => {
     setLoading(true);
     setError('');
@@ -115,7 +162,7 @@ function PaymentDetails() {
           const hashRes = await axios.post('http://localhost:5000/generate-payhere-hash', {
             order_id: orderId,
             amount: total,
-            currency: 'USD'
+            currency: 'LKR'
           });
 
           const { hash, merchant_id } = hashRes.data;
@@ -130,7 +177,7 @@ function PaymentDetails() {
             order_id: String(orderId),
             items: "Chronos Luxury Watches Order #" + orderId,
             amount: Number(total).toFixed(2),
-            currency: "USD",
+            currency: "LKR",
             hash: hash,
             first_name: shippingDetails?.firstName || "Guest",
             last_name: shippingDetails?.lastName || "Customer",
@@ -148,6 +195,8 @@ function PaymentDetails() {
                status: 'Paid'
             }).catch(console.error);
 
+            sendOrderMails(orderId);
+
             clearCart();
             setLoading(false);
             navigate(`/checkout/success/${orderId}`);
@@ -164,6 +213,7 @@ function PaymentDetails() {
           window.payhere.startPayment(payment);
 
         } else {
+          sendOrderMails(orderId);
           clearCart();
           setSuccessMsg("Order placed successfully! Order ID: " + orderId);
           setLoading(false);
@@ -337,7 +387,7 @@ function PaymentDetails() {
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest truncate w-40">{item.name}</p>
                         <p className="text-[10px] text-gray-500 mt-1">Qty: {item.quantity}</p>
                       </div>
-                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
+                      <span className="text-xs font-medium text-white">Rs. {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -345,7 +395,7 @@ function PaymentDetails() {
                 <div className="flex flex-col gap-4 text-xs tracking-widest uppercase text-gray-400">
                   <div className="flex justify-between">
                     <span>Amount</span>
-                    <span className="text-white">$ {fmt(subtotal)}</span>
+                    <span className="text-white">Rs. {fmt(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
@@ -357,7 +407,7 @@ function PaymentDetails() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-white font-medium uppercase text-sm tracking-widest">Total</span>
-                  <span className="text-white text-xl font-semibold tracking-wide">$ {fmt(total)}</span>
+                  <span className="text-white text-xl font-semibold tracking-wide">Rs. {fmt(total)}</span>
                 </div>
               </div>
             </div>
@@ -385,7 +435,7 @@ function PaymentDetails() {
                   <div className="w-full h-px bg-[#D4AF37]/30 mb-4" />
                   <h4 className="text-white text-[13px] font-normal uppercase tracking-widest leading-snug mb-4 h-10 overflow-hidden">{p.name}</h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-white text-sm font-semibold tracking-wide">$ {fmt(p.price || p.priceNum || 0)}</span>
+                    <span className="text-white text-sm font-semibold tracking-wide">Rs. {fmt(p.price || p.priceNum || 0)}</span>
                     <button className="w-9 h-9 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all">
                       <CartBtnIcon />
                     </button>

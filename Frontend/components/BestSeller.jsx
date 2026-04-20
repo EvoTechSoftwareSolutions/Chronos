@@ -40,7 +40,7 @@ function BestSeller() {
                 id: p.id,
                 brand: p.brand,
                 name: p.name,
-                price: String(p.price).replace('$', '') + "$",
+                price: "Rs. " + String(p.price),
                 rating: p.feedback_rate || '0.0',
                 reviews: p.feedback_count || '0',
                 category: p.category || 'luxury',
@@ -62,7 +62,7 @@ function BestSeller() {
     e.preventDefault();
     e.stopPropagation();
     
-    const priceNum = parseFloat(product.price.replace(/[,\$]/g, '')) || 0;
+    const priceNum = parseFloat(product.price.replace(/[,\\$a-zA-Z\\s.]/g, '')) || 0;
 
     addToCart({
       id: product.id,

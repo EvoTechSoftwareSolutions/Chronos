@@ -32,7 +32,7 @@ exports.getOrders = async (req, res) => {
           customer_id: row.customer_id || 'GUEST',
           customer: row.customer_name || `${row.first_name || ''} ${row.last_name || ''}`.trim() || 'Guest',
           items_summary: itemsArr.map(i => i.name).join(', '),
-          total_formatted: `$${Number(row.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          total_formatted: `Rs. ${Number(row.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
           date_formatted: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           status: row.order_status || 'Pending'
         };
@@ -49,7 +49,7 @@ exports.updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { order_status } = req.body;
   const cleanId = id.replace('#', '');
-  console.log(`[Admin API] Updating Order Status. ID: ${id} -> ${cleanId}, Status: ${order_status}`);
+  console.log(`[Admin API] Updating Order Status. ID: ${id} ->Rs. {cleanId}, Status: ${order_status}`);
   
   if (!order_status) {
     return res.status(400).json({ error: 'order_status is required' });

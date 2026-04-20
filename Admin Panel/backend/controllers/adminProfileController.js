@@ -1,5 +1,4 @@
 const db = require('../config/db');
-const bcrypt = require('bcryptjs');
 
 exports.getProfile = async (req, res) => {
   try {
@@ -51,25 +50,19 @@ exports.updateSecurity = async (req, res) => {
   }
 
   try {
-    // 1. Get the current admin record (assume ID 1 for now or from session)
+    // 1. Get the current admin record
     const [rows] = await db.query('SELECT * FROM admins LIMIT 1');
     if (rows.length === 0) return res.status(404).json({ error: 'Admin not found' });
     
     const admin = rows[0];
 
-    // 2. Verify current password
-    const isMatch = await bcrypt.compare(currentPassword, admin.password);
-    const isPlainTextMatch = (currentPassword === admin.password); // Fallback for transition
-
-    if (!isMatch && !isPlainTextMatch) {
+    // 2. Verify current password (plain text comparison)
+    if (currentPassword !== admin.password) {
       return res.status(401).json({ error: 'Incorrect current password' });
     }
 
-    // 3. Hash new password and update
-    const salt = await bcrypt.genSalt(10);
-    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
-
-    await db.query('UPDATE admins SET password = ? WHERE id = ?', [hashedNewPassword, admin.id]);
+    // 3. Update with new password (plain text)
+    await db.query('UPDATE admins SET password = ? WHERE id = ?', [newPassword, admin.id]);
 
     res.json({ message: 'Password updated successfully' });
   } catch (error) {

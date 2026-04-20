@@ -240,7 +240,7 @@ export default function Customers() {
                   <input name="orders_count" type="number" value={newCustomer.orders_count} placeholder="Orders" onChange={handleInputChange} className="form-input" style={{width: '80%'}}/>
                 </div>
                 <div style={{flex: 1}}>
-                  <label className="form-label">Total Spent ($)</label>
+                  <label className="form-label">Total Spent (Rs.)</label>
                   <input name="total_spent" type="number" step="0.01" value={newCustomer.total_spent} placeholder="Spent" onChange={handleInputChange} className="form-input" style={{width: '80%'}}/>
                 </div>
                 <div style={{flex: 1}}>

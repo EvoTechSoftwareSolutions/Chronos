@@ -48,7 +48,7 @@ export default function Profile() {
                 productName: items[0]?.name || 'Chronos Timepiece',
                 productId: items[0]?.id,
                 itemsCount: items.length + (items.length === 1 ? ' Item' : ' Items'),
-                price: '$ ' + o.total,
+                price: 'Rs. ' + o.total,
                 address: `${o.address}, ${o.city}, ${o.province} ${o.zip_code}`,
                 payment: o.payment_method || 'Credit/Debit',
                 tracking: 'TRACK-' + Math.random().toString(36).substring(7).toUpperCase()

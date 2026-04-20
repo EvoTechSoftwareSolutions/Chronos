@@ -196,14 +196,14 @@ export default function Orders() {
                             <span className="qty-tag">{item.quantity}x</span>
                             <span className="product-name">{item.name}</span>
                          </div>
-                         <span className="item-price">${(item.priceNum || 0).toLocaleString()}</span>
+                         <span className="item-price">Rs. {(item.priceNum || 0).toLocaleString()}</span>
                       </div>
                    ))}
                 </div>
                 <div className="order-summary-box">
                    <div className="summary-row">
                       <span>Subtotal</span>
-                      <span>${Number(selectedOrder.subtotal || 0).toLocaleString()}</span>
+                      <span>Rs. {Number(selectedOrder.subtotal || 0).toLocaleString()}</span>
                    </div>
                    <div className="summary-row">
                       <span>Discount</span>

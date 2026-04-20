@@ -5,7 +5,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useCart } from '../../context/CartContext';
 
-// ─── Related products ─────────────────────────────────────────────────────────
+// Related products
 import rImg1 from '../../assets/images/products/latest1.png';
 import rImg2 from '../../assets/images/products/latest2.png';
 import rImg3 from '../../assets/images/products/latest3.png';
@@ -16,7 +16,7 @@ const RELATED = [
   { id: 'r3', brand: 'OMEGA', name: 'Ocean Blue Master',      priceNum: 9800,  image: rImg3 },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 const COLOR_NAMES = {
   '#D4AF37': 'Gold',
   '#F5F5F5': 'Silver',
@@ -38,7 +38,7 @@ function getPrice(item) {
     : parseFloat(String(item.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
 }
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
+//Icons
 function TrashIcon() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -59,7 +59,7 @@ function CartBtnIcon() {
   );
 }
 
-// ─── Compact Cart Item Card ────────────────────────────────────────────────────
+// Compact Cart Item Card
 function CartItemCard({ item, onRemove, onQtyChange }) {
   const colorName = getColorName(item.color);
 
@@ -125,8 +125,7 @@ function CartItemCard({ item, onRemove, onQtyChange }) {
               +
             </button>
           </div>
-          <span className="text-white text-xs font-semibold tracking-wide">
-            ${fmt(getPrice(item) * item.quantity)}
+          <span className="text-white text-xs font-semibold tracking-wide">Rs. {fmt(getPrice(item) * item.quantity)}
           </span>
         </div>
       </div>
@@ -134,7 +133,7 @@ function CartItemCard({ item, onRemove, onQtyChange }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// Main Component
 function Cart() {
   const { cartItems, removeFromCart, updateQuantity, clearCart } = useCart();
   const navigate = useNavigate();
@@ -154,7 +153,7 @@ function Cart() {
     navigate('/checkout/shipping');
   };
 
-  // ── Empty cart ──────────────────────────────────────────────────────────────
+  // Empty cart
   if (cartItems.length === 0 && !status) {
     return (
       <div className="bg-[#0B0B0B] text-white w-full min-h-screen">
@@ -182,7 +181,7 @@ function Cart() {
     <div className="bg-[#0B0B0B] text-white w-full min-h-screen relative overflow-x-hidden">
       <Navbar />
 
-      {/* ── Background Decoration ─────────────────────────────────────────── */}
+      {/* Background Decoration*/}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
         <svg className="absolute right-0 top-20 w-[50%] h-auto opacity-[0.04]"
           viewBox="0 0 500 700" fill="none">
@@ -196,7 +195,7 @@ function Cart() {
       </div>
 
       <div className="relative z-10">
-        {/* ── Page Header ─────────────────────────────────────────────────── */}
+        {/*Page Header*/}
         <div className="max-w-7xl mx-auto px-6 lg:px-16 pt-28 md:pt-36 pb-8 text-center md:text-left">
           <h1 className="font-playfair uppercase tracking-widest text-white leading-tight"
               style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)' }}>
@@ -205,7 +204,7 @@ function Cart() {
           <div className="w-16 h-[2px] bg-[#D4AF37] mt-3 mx-auto md:ml-0" />
         </div>
 
-        {/* ── Status Banner ────────────────────────────────────────────────── */}
+        {/* Status Banner */}
         {status && (
           <div className="max-w-7xl mx-auto px-6 md:px-16 mb-6">
             <div className={`p-4 rounded-xl border text-sm ${
@@ -223,12 +222,12 @@ function Cart() {
           </div>
         )}
 
-        {/* ── Main Cart Grid ───────────────────────────────────────────────── */}
+        {/*  Main Cart Grid  */}
         {cartItems.length > 0 && (
           <div className="max-w-7xl mx-auto px-6 lg:px-16 pb-20">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
 
-              {/* LEFT — Cart Items (2-col card grid) ─────────────────────── */}
+              {/* LEFT — Cart Items (2-col card grid) */}
               <div className="lg:col-span-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {cartItems.map((item) => (
@@ -253,7 +252,7 @@ function Cart() {
                   <div className="flex flex-col gap-3.5 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 tracking-wide text-xs">Amount</span>
-                      <span className="text-white font-medium text-xs">$ {fmt(subtotal)}</span>
+                      <span className="text-white font-medium text-xs">Rs. {fmt(subtotal)}</span>
                     </div>
                     {cartItems.length === 1 && (
                       <div className="flex justify-between items-center">
@@ -275,7 +274,7 @@ function Cart() {
 
                   <div className="flex justify-between items-center mb-7">
                     <span className="text-white font-medium tracking-wide uppercase text-xs">Total</span>
-                    <span className="text-white text-lg font-semibold">$ {fmt(total)}</span>
+                    <span className="text-white text-lg font-semibold">Rs. {fmt(total)}</span>
                   </div>
 
                   <button
@@ -330,7 +329,7 @@ function Cart() {
                     {p.name}
                   </h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-300 text-xs font-medium">$ {fmt(p.priceNum)}</span>
+                    <span className="text-gray-300 text-xs font-medium">Rs. {fmt(p.priceNum)}</span>
                     <button className="w-8 h-8 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all duration-300">
                       <CartBtnIcon />
                     </button>

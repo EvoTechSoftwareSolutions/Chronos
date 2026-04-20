@@ -5,7 +5,7 @@ import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import bcrypt from "bcryptjs";
+
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -249,9 +249,8 @@ db.connect((err) => {
       if (!err) {
         db.query("SELECT COUNT(*) as count FROM admin_profile", (err, result) => {
           if (!err && result[0].count === 0) {
-            const hashedPassword = bcrypt.hashSync('admin123', 10);
             const sql = "INSERT INTO admin_profile (name, email, role, password) VALUES ('Admin', 'admin@chronos.com', 'Super Admin', ?)";
-            db.query(sql, [hashedPassword]);
+            db.query(sql, ['admin123']);
           }
         });
       }
@@ -276,9 +275,8 @@ db.connect((err) => {
       if (!err) {
         db.query("SELECT COUNT(*) as count FROM admins", (err, result) => {
           if (!err && result[0].count === 0) {
-            const hashedPassword = bcrypt.hashSync('admin123', 10);
             const sql = "INSERT INTO admins (name, email, role, password) VALUES ('Admin', 'admin@chronos.com', 'Super Admin', ?)";
-            db.query(sql, [hashedPassword]);
+            db.query(sql, ['admin123']);
           }
         });
       }
@@ -317,12 +315,11 @@ db.connect((err) => {
 //REGISTER
 app.post("/register", (req, res) => {
   const { name, email, password } = req.body;
-  const hashedPassword = bcrypt.hashSync(password, 10);
   const account_id = 'ACC-' + crypto.randomBytes(3).toString('hex').toUpperCase();
   
   const sql = "INSERT INTO users (account_id, name, email, password) VALUES (?, ?, ?, ?)";
 
-  db.query(sql, [account_id, name, email, hashedPassword], (err, result) => {
+  db.query(sql, [account_id, name, email, password], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') return res.json({ success: false, message: "Email already exists" });
       return res.json({ success: false, message: "Error saving data" });
@@ -390,7 +387,7 @@ app.post("/login", (req, res) => {
     
     if (result.length > 0) {
       const user = result[0];
-      const isMatch = bcrypt.compareSync(password, user.password || "");
+      const isMatch = (password === user.password);
       if (isMatch) {
          return res.json({ 
            success: true, 
@@ -789,7 +786,7 @@ app.post("/api/admin/login", (req, res) => {
     if (results.length === 0) return res.status(401).json({ error: "Invalid admin credentials" });
 
     const admin = results[0];
-    const isMatch = bcrypt.compareSync(password, admin.password);
+    const isMatch = (password === admin.password);
 
     if (isMatch) {
       // In a real production app, we would return a JWT token here
@@ -806,7 +803,7 @@ app.post("/api/admin/login", (req, res) => {
 // DASHBOARD
 app.get("/api/admin/dashboard", (req, res) => {
   const stats = {
-    revenue: { value: "$0.00" },
+    revenue: { value: "Rs. 0.00" },
     orders: { value: 0 },
     customers: { value: 0 },
     products: { value: 0 }
@@ -814,7 +811,7 @@ app.get("/api/admin/dashboard", (req, res) => {
   
   db.query("SELECT SUM(total) as revenue, COUNT(*) as count FROM orders", (err, result) => {
     if(!err && result[0]) {
-      stats.revenue.value = "$" + (result[0].revenue || 0).toLocaleString();
+      stats.revenue.value = "Rs. " + (result[0].revenue || 0).toLocaleString();
       stats.orders.value = result[0].count;
     }
     
@@ -833,7 +830,7 @@ app.get("/api/admin/dashboard", (req, res) => {
                  id: "ORD-" + String(o.id).padStart(4, "0"),
                  customer: o.first_name + " " + o.last_name,
                  product: parsedItems[0]?.name || "Multiple Items",
-                 amount: "$" + o.total,
+                 amount: "Rs. " + o.total,
                  status: o.payment_status || "Pending"
              };
           });
@@ -900,7 +897,7 @@ app.post("/api/admin/products", upload.array("images", 5), (req, res) => {
   const imagesJson = JSON.stringify(imageUrls);
   
   const sql = `INSERT INTO products (name, price, stock_quantity, brand, category, color, strap_size, description, image_url, images) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-  const values = [name, "$" + Number(price).toLocaleString(), Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson];
+  const values = [name, "Rs. " + Number(price).toLocaleString(), Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson];
   
   db.query(sql, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -928,7 +925,7 @@ app.put("/api/admin/products/:id", upload.array("images", 5), (req, res) => {
   const imagesJson = JSON.stringify(combinedImages);
 
   const sql = `UPDATE products SET name=?, price=?, stock_quantity=?, brand=?, category=?, color=?, strap_size=?, description=?, image_url=?, images=? WHERE id=?`;
-  const values = [name, "$" + Number(price).toLocaleString(), Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson, id];
+  const values = [name, "Rs. " + Number(price).toLocaleString(), Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson, id];
   db.query(sql, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
@@ -978,9 +975,8 @@ app.put("/api/admin/profile", (req, res) => {
 app.post("/api/admin/profile/security", (req, res) => {
    const { currentPassword, newPassword } = req.body;
    db.query("SELECT password FROM admin_profile WHERE id=1", (err, results) => {
-      if(results && results.length > 0 && bcrypt.compareSync(currentPassword, results[0].password)) {
-         const newHashedPassword = bcrypt.hashSync(newPassword, 10);
-         db.query("UPDATE admin_profile SET password=? WHERE id=1", [newHashedPassword], (err) => {
+      if(results && results.length > 0 && currentPassword === results[0].password) {
+         db.query("UPDATE admin_profile SET password=? WHERE id=1", [newPassword], (err) => {
             if(err) return res.status(500).json({error: err.message});
             res.json({success: true});
          });
@@ -1011,7 +1007,7 @@ app.get("/api/admin/customers", (req, res) => {
        if(c.join_date && new Date(c.join_date).getMonth() === now.getMonth()) newMonth++;
        // Ensure join_date is a readable string
        if(c.join_date) c.join_date = new Date(c.join_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-       if(c.total_spent) c.total_spent = "$" + Number(c.total_spent).toLocaleString();
+       if(c.total_spent) c.total_spent = "Rs. " + Number(c.total_spent).toLocaleString();
     });
 
     const stats = {
@@ -1073,7 +1069,7 @@ app.get("/api/admin/orders", (req, res) => {
           customer: o.first_name + " " + o.last_name,
           date: cDate.toLocaleDateString(),
           items: JSON.parse(o.items)?.length + " Items",
-          total: "$" + o.total,
+          total: "Rs. " + o.total,
           status: stat
        };
     });

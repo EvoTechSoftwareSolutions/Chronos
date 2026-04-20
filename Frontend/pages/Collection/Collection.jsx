@@ -212,7 +212,7 @@ export default function Collection() {
                     <div className="coll-card-info">
                       <p className="coll-card-brand">{item.brand}</p>
                       <h3 className="coll-card-name">{item.name}</h3>
-                      <p className="coll-card-price">$ {String(item.price).replace('$', '').trim()}</p>
+                      <p className="coll-card-price">Rs. {String(item.price).replace('Rs. ', '').trim()}</p>
                     </div>
                   </div>
                 ))}

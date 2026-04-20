@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 
 // Pages and Components
 import Login from './pages/Login';
@@ -13,11 +13,21 @@ import Notifications from './pages/Notifications';
 
 import Layout from './components/Layout';
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
+
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Login />} />
-      <Route element={<Layout />}>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/customers" element={<Customers />} />
@@ -28,6 +38,7 @@ function App() {
 
       </Route>
     </Routes>
+    </>
   );
 }
 

@@ -251,7 +251,7 @@ export default function Products() {
             <div className="modal-body">
               <div className="form-row triplet">
                 <input name="name" type="text" value={newProduct.name} placeholder="Product Name" onChange={handleInputChange} className="form-input" />
-                <input name="price" type="number" value={newProduct.price} placeholder="Price ($)" onChange={handleInputChange} className="form-input" />
+                <input name="price" type="number" value={newProduct.price} placeholder="Price (Rs.)" onChange={handleInputChange} className="form-input" />
                 <input name="stock_quantity" type="number" value={newProduct.stock_quantity} placeholder="Stock Quantity" onChange={handleInputChange} className="form-input" />
               </div>
               
