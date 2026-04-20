@@ -241,7 +241,7 @@ function Cart() {
                 </div>
               </div>
 
-              {/* RIGHT — Order Summary ───────────────────────────────────── */}
+              {/* RIGHT — Order Summary*/}
               <div className="lg:col-span-1 lg:sticky lg:top-32">
                 <div className="bg-[#111111] rounded-2xl border border-[#2a2a2a] p-7">
                   <h2 className="text-white font-medium tracking-[0.15em] uppercase text-sm mb-5">
