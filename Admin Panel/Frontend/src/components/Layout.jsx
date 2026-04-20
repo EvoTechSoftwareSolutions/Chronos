@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import StatusModal from './StatusModal';
 import '../styles/Layout.css';
 
 export default function Layout() {
@@ -19,6 +20,8 @@ export default function Layout() {
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
+      
+      <StatusModal />
     </div>
   );
 }

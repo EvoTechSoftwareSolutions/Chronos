@@ -126,7 +126,7 @@ function CartItemCard({ item, onRemove, onQtyChange }) {
             </button>
           </div>
           <span className="text-white text-xs font-semibold tracking-wide">
-            ${fmt(getPrice(item) * item.quantity)}
+            Rs. {fmt(getPrice(item) * item.quantity)}
           </span>
         </div>
       </div>
@@ -253,7 +253,7 @@ function Cart() {
                   <div className="flex flex-col gap-3.5 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 tracking-wide text-xs">Amount</span>
-                      <span className="text-white font-medium text-xs">$ {fmt(subtotal)}</span>
+                      <span className="text-white font-medium text-xs">Rs. {fmt(subtotal)}</span>
                     </div>
                     {cartItems.length === 1 && (
                       <div className="flex justify-between items-center">
@@ -275,7 +275,7 @@ function Cart() {
 
                   <div className="flex justify-between items-center mb-7">
                     <span className="text-white font-medium tracking-wide uppercase text-xs">Total</span>
-                    <span className="text-white text-lg font-semibold">$ {fmt(total)}</span>
+                    <span className="text-white text-lg font-semibold">Rs. {fmt(total)}</span>
                   </div>
 
                   <button
@@ -330,7 +330,7 @@ function Cart() {
                     {p.name}
                   </h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-300 text-xs font-medium">$ {fmt(p.priceNum)}</span>
+                    <span className="text-gray-300 text-xs font-medium">Rs. {fmt(p.priceNum)}</span>
                     <button className="w-8 h-8 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all duration-300">
                       <CartBtnIcon />
                     </button>

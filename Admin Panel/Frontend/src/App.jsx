@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 
 // Pages and Components
 import Login from './pages/Login';
@@ -12,22 +12,37 @@ import AdminProfile from './pages/AdminProfile';
 import Notifications from './pages/Notifications';
 
 import Layout from './components/Layout';
+import { ModalProvider } from './context/ModalContext';
 
 function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Login />} />
-      <Route element={<Layout />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/customers" element={<Customers />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/profile" element={<AdminProfile />} />
-        <Route path="/notifications" element={<Notifications />} />
+  const navigate = useNavigate();
 
-      </Route>
-    </Routes>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sso = params.get('sso');
+    if (sso) {
+      localStorage.setItem("adminUser", sso);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      navigate("/dashboard");
+    }
+  }, [navigate]);
+
+  return (
+    <ModalProvider>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/customers" element={<Customers />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/profile" element={<AdminProfile />} />
+          <Route path="/notifications" element={<Notifications />} />
+
+        </Route>
+      </Routes>
+    </ModalProvider>
   );
 }
 

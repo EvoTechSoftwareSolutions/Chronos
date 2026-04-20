@@ -40,7 +40,7 @@ function BestSeller() {
                 id: p.id,
                 brand: p.brand,
                 name: p.name,
-                price: String(p.price).replace('$', '') + "$",
+                price: "Rs. " + String(p.price).replace('$', ''),
                 rating: p.feedback_rate || '0.0',
                 reviews: p.feedback_count || '0',
                 category: p.category || 'luxury',

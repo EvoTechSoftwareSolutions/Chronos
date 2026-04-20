@@ -22,8 +22,8 @@ exports.getProducts = async (req, res) => {
     const [statsResult] = await pool.query(`
       SELECT 
         COUNT(*) as totalProducts,
-        SUM(CASE WHEN stock_quantity > 0 THEN 1 ELSE 0 END) as inStockCount,
-        SUM(CASE WHEN stock_quantity = 0 THEN 1 ELSE 0 END) as outOfStockCount,
+        SUM(CASE WHEN IFNULL(stock_quantity, 0) > 0 THEN 1 ELSE 0 END) as inStockCount,
+        SUM(CASE WHEN IFNULL(stock_quantity, 0) <= 0 THEN 1 ELSE 0 END) as outOfStockCount,
         COUNT(DISTINCT category) as categoriesCount
       FROM products
     `);
@@ -31,7 +31,7 @@ exports.getProducts = async (req, res) => {
     res.status(200).json({
       products: products.map(p => ({
         ...p,
-        price: `$${Number(String(p.price).replace(/[^0-9.]/g, '') || 0).toLocaleString()}`
+        price: `Rs.${Number(String(p.price).replace(/[^0-9.]/g, '') || 0).toLocaleString()}`
       })),
       stats: statsResult[0]
     });

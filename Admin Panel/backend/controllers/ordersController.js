@@ -32,7 +32,7 @@ exports.getOrders = async (req, res) => {
           customer_id: row.customer_id || 'GUEST',
           customer: row.customer_name || `${row.first_name || ''} ${row.last_name || ''}`.trim() || 'Guest',
           items_summary: itemsArr.map(i => i.name).join(', '),
-          total_formatted: `$${Number(row.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          total_formatted: `Rs.${Number(row.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
           date_formatted: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           status: row.order_status || 'Pending'
         };
@@ -62,5 +62,25 @@ exports.updateOrderStatus = async (req, res) => {
   } catch (err) {
     console.error('[Admin API] Order update error:', err);
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+};
+
+exports.deleteOrder = async (req, res) => {
+  const { id } = req.params;
+  const cleanId = id.replace('#', '');
+  console.log(`[Admin API] Deleting Order. ID: ${id} -> ${cleanId}`);
+
+  try {
+    const [result] = await pool.query('DELETE FROM orders WHERE id = ?', [cleanId]);
+    console.log(`[Admin API] Delete result:`, result);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    res.json({ success: true, message: 'Order deleted successfully' });
+  } catch (err) {
+    console.error('[Admin API] Order deletion error:', err);
+    res.status(500).json({ error: 'Failed to delete order', detail: err.message });
   }
 };

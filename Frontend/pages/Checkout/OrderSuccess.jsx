@@ -2,9 +2,15 @@ import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
+import { useCart } from '../../context/CartContext';
 
 function OrderSuccess() {
   const { orderId } = useParams();
+  const { clearCart } = useCart();
+
+  React.useEffect(() => {
+    clearCart();
+  }, [clearCart]);
 
   return (
     <div style={{ background: '#030303', minHeight: '100vh', color: '#fff' }}>

@@ -304,7 +304,7 @@ function ProductDetail() {
 
             {/* Price */}
             <p className="text-[#D4AF37] text-4xl lg:text-5xl font-bold tracking-tight text-center lg:text-left mt-4 py-2">
-              $ <span className="ml-2">{String(product.price).replace('$', '').trim()}</span>
+              Rs. <span className="ml-2">{String(product.price).replace('$', '').trim()}</span>
             </p>
 
             {/* Description */}
@@ -495,7 +495,7 @@ function ProductDetail() {
               <div className="px-4 py-3">
                 <p className="text-[#D4AF37] text-[10px] tracking-[0.2em] uppercase font-medium mb-1">{p.brand}</p>
                 <h4 className="text-white text-sm font-medium uppercase tracking-wide mb-1">{p.name}</h4>
-                <p className="text-white text-sm font-semibold">$ {p.price}</p>
+                <p className="text-white text-sm font-semibold">Rs. {p.price}</p>
               </div>
             </Link>
           ))}

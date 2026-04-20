@@ -24,6 +24,17 @@ body {
   display: none !important;
 }
 
+/* --- Billing Card Logos --- */
+.card-logo-container {
+  width: 64px;
+  height: 40px;
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
 /* Chronos luxury button */
 
 .btn-gold {
@@ -57,16 +68,122 @@ body {
 
 .w-heading {
   font-family: 'Poppins', sans-serif;
-  
-  
 }
 
 .b-heading {
   font-family: 'Playfair Display SC', serif;
   letter-spacing: 0.2rem;
-  
 }
 
 .Right-side {
   background: linear-gradient(60deg, #000000, #3a2f09, #D4AF37);
+}
+
+/* --- Premium Popup System --- */
+.popup-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.92) !important;
+  backdrop-filter: blur(12px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  animation: fadeInModal 0.4s ease-out;
+}
+
+.popup-content {
+  background: #0D0D0D !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  padding: 3.5rem !important;
+  border-radius: 28px !important;
+  max-width: 480px !important;
+  width: 90% !important;
+  text-align: center !important;
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.9), 0 0 50px rgba(212, 175, 55, 0.2) !important;
+  position: relative !important;
+  animation: zoomInModal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popup-header {
+  margin-bottom: 2.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.popup-title {
+  color: #D4AF37 !important;
+  font-family: 'Playfair Display SC', serif !important;
+  font-size: 1.85rem !important;
+  margin-bottom: 1.25rem !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase !important;
+}
+
+.popup-message {
+  color: #E0E0E0 !important;
+  font-size: 1.05rem !important;
+  line-height: 1.8 !important;
+  margin-bottom: 3rem !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.5px !important;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.popup-btn-primary {
+  background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%) !important;
+  color: black !important;
+  padding: 1rem 2.8rem !important;
+  border-radius: 14px !important;
+  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3) !important;
+}
+
+.popup-btn-primary:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 12px 25px rgba(212, 175, 55, 0.5) !important;
+}
+
+.popup-btn-secondary {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #999 !important;
+  padding: 1rem 2.8rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  transition: all 0.4s ease !important;
+  cursor: pointer !important;
+}
+
+.popup-btn-secondary:hover {
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomInModal {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
+import { useModal } from '../context/ModalContext';
 import Header from '../components/Header';
 
 import '../styles/Settings.css';
@@ -33,6 +34,7 @@ export default function Settings() {
   });
 
   const [loading, setLoading] = useState(true);
+  const { showModal } = useModal();
   
   // Role-based access control
   const storedUser = JSON.parse(localStorage.getItem("adminUser") || "{}");
@@ -73,7 +75,11 @@ export default function Settings() {
 
   const handleSaveSettings = () => {
     if (!isAdmin) {
-      alert("Role Restriction: Store Information Admins cannot modify these settings.");
+      showModal({
+        type: 'error',
+        title: 'RESTRICTED',
+        message: 'Role Restriction: Store Information Admins cannot modify these settings.'
+      });
       return;
     }
 
@@ -85,38 +91,67 @@ export default function Settings() {
       .then(async res => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to save settings');
-        alert('Settings Saved!');
+        showModal({
+          type: 'success',
+          title: 'SETTINGS SAVED',
+          message: 'Store settings have been updated successfully.'
+        });
       })
       .catch(err => {
         console.error(err);
-        alert(err.message);
+        showModal({
+          type: 'error',
+          title: 'SAVE FAILED',
+          message: err.message
+        });
       });
   };
 
   const handleSaveSecurity = () => {
     if (!securityData.currentPassword || !securityData.newPassword) {
-      alert("Please fill in both current and new passwords.");
+      showModal({
+        type: 'error',
+        title: 'REQUIRED FIELDS',
+        message: 'Please fill in both current and new passwords.'
+      });
       return;
     }
     if (securityData.newPassword !== securityData.confirmPassword) {
-      alert("Passwords don't match!");
+      showModal({
+        type: 'error',
+        title: 'MISMATCH',
+        message: "Passwords don't match!"
+      });
       return;
     }
+
+    const payload = {
+      ...securityData,
+      id: storedUser.id
+    };
 
     fetch('http://localhost:5001/api/admin/profile/security', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(securityData)
+      body: JSON.stringify(payload)
     })
       .then(async res => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to update password');
-        alert('Password updated successfully!');
+        showModal({
+          type: 'success',
+          title: 'PASSWORD UPDATED',
+          message: 'Your security credentials have been updated successfully.'
+        });
         setSecurityData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       })
       .catch(err => {
         console.error(err);
-        alert(err.message);
+        showModal({
+          type: 'error',
+          title: 'UPDATE FAILED',
+          message: err.message
+        });
       });
   };
 

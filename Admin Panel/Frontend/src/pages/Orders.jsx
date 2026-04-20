@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import { X, Package, MapPin, CreditCard, ChevronRight } from 'lucide-react';
+import { X, Package, MapPin, CreditCard, ChevronRight, Eye, Edit2, Trash2 } from 'lucide-react';
+import { useModal } from '../context/ModalContext';
 import '../styles/Orders.css';
 
 export default function Orders() {
   const navigate = useNavigate();
+  const { showModal } = useModal();
 
   const [data, setData] = useState({ orders: [], stats: {} });
   const [loading, setLoading] = useState(true);
@@ -42,14 +44,66 @@ export default function Orders() {
       .then(json => {
         if (json.success) {
           fetchOrders();
+          showModal({
+            type: 'success',
+            title: 'Update Successful',
+            message: `Order status for ${id} has been updated to ${newStatus}.`
+          });
           if (selectedOrder && selectedOrder.id === id) {
              setSelectedOrder({ ...selectedOrder, status: newStatus });
           }
         }
       })
       .catch(err => {
-        alert(`Failed to update status: ${err.message}`);
+        showModal({
+          type: 'error',
+          title: 'Update Failed',
+          message: err.message
+        });
       });
+  };
+
+  const handleDeleteOrder = (id) => {
+    const cleanId = id.replace('#', '');
+    showModal({
+      type: 'confirm',
+      title: 'Delete Order?',
+      message: `Are you sure you want to delete order ${id}? This action cannot be undone.`,
+      onConfirm: () => {
+        fetch(`http://localhost:5001/api/admin/orders/${cleanId}`, {
+          method: 'DELETE'
+        })
+          .then(async res => {
+            if (!res.ok) {
+              const text = await res.text();
+              throw new Error(`Server Error (${res.status}): ${text.substring(0, 100)}`);
+            }
+            return res.json();
+          })
+          .then(json => {
+            if (json.success) {
+              fetchOrders();
+              showModal({
+                type: 'success',
+                title: 'Delete Successful',
+                message: `Order ${id} has been removed permanently.`
+              });
+            } else {
+              showModal({ type: 'error', title: 'Error', message: json.message });
+            }
+          })
+          .catch(err => {
+            console.error("Delete error:", err);
+            showModal({ 
+              type: 'error', 
+              title: 'Delete Failed', 
+              message: err.message.includes('Unexpected token') 
+                ? "The server returned an invalid response. Please check the backend logs."
+                : err.message 
+            });
+          });
+      }
+    });
   };
 
   const filteredOrders = data?.orders?.filter(o => 
@@ -136,7 +190,19 @@ export default function Orders() {
                       <option value="Canceled">Canceled</option>
                     </select>
                   </td>
-                  <td><button className="view-action" onClick={() => setSelectedOrder(order)}>View</button></td>
+                  <td>
+                      <div className="action-btns">
+                        <button className="action-icn" title="View" onClick={() => setSelectedOrder(order)}>
+                          <Eye size={18} />
+                        </button>
+                        <button className="action-icn" title="Edit" onClick={() => setSelectedOrder(order)}>
+                          <Edit2 size={16} />
+                        </button>
+                        <button className="action-icn delete" title="Delete" onClick={() => handleDeleteOrder(order.id)}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                  </td>
                 </tr>
               ))
             ) : (
@@ -196,18 +262,20 @@ export default function Orders() {
                             <span className="qty-tag">{item.quantity}x</span>
                             <span className="product-name">{item.name}</span>
                          </div>
-                         <span className="item-price">${(item.priceNum || 0).toLocaleString()}</span>
-                      </div>
+                          <span className="item-price">
+                             Rs. {Number(item.priceNum || parseFloat(String(item.price || 0).replace(/[^0-9.]/g, '')) || 0).toLocaleString()}
+                          </span>
+                       </div>
                    ))}
                 </div>
                 <div className="order-summary-box">
                    <div className="summary-row">
                       <span>Subtotal</span>
-                      <span>${Number(selectedOrder.subtotal || 0).toLocaleString()}</span>
+                      <span>Rs. {Number(selectedOrder.subtotal || 0).toLocaleString()}</span>
                    </div>
                    <div className="summary-row">
                       <span>Discount</span>
-                      <span className="red-text">-${Number(selectedOrder.discount || 0).toLocaleString()}</span>
+                      <span className="red-text">-Rs. {Number(selectedOrder.discount || 0).toLocaleString()}</span>
                    </div>
                    <div className="summary-row total-row">
                       <span>Total</span>

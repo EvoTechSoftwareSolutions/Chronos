@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import heroBg from '../assets/images/hero/hero-bg.png';
-
 function Hero() {
   const navigate = useNavigate();
   const [targetDate, setTargetDate] = useState(() => {
