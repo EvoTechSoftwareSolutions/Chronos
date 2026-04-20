@@ -304,7 +304,7 @@ function ProductDetail() {
 
             {/* Price */}
             <p className="text-[#D4AF37] text-4xl lg:text-5xl font-bold tracking-tight text-center lg:text-left mt-4 py-2">
-              Rs. <span className="ml-2">{String(product.price).replace('Rs. ', '').trim()}</span>
+              Rs. <span className="ml-2">{String(product.price).replace('$', '').trim()}</span>
             </p>
 
             {/* Description */}

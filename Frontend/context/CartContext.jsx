@@ -17,21 +17,16 @@ export function CartProvider({ children }) {
     localStorage.setItem('chronos_cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const [shippingDetails, setShippingDetails] = useState(() => {
-    try {
-      const stored = localStorage.getItem('chronos_shipping');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [shippingDetails, setShippingDetails] = useState(null);
 
   const [shippingMethod, setShippingMethod] = useState(null);
 
-  // Persist shipping details to localStorage
+  // Persist shipping details to localStorage (optional/temporary)
   useEffect(() => {
     if (shippingDetails) {
       localStorage.setItem('chronos_shipping', JSON.stringify(shippingDetails));
+    } else {
+      localStorage.removeItem('chronos_shipping');
     }
   }, [shippingDetails]);
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
+import { useModal } from '../context/ModalContext';
 import { Search, Plus, Edit2, Trash2, X } from 'lucide-react';
 import '../styles/Customers.css';
 
@@ -9,9 +10,10 @@ export default function Customers() {
 
   const [data, setData] = useState({ customers: [], stats: {} });
   const [loading, setLoading] = useState(true);
+  const { showModal: showStatusModal } = useModal();
   
   // Modal State
-  const [showModal, setShowModal] = useState(false);
+  const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -55,7 +57,7 @@ export default function Customers() {
     });
     setIsEditMode(false);
     setEditId(null);
-    setShowModal(true);
+    setIsAddEditModalOpen(true);
   };
 
   const openEditModal = (customer) => {
@@ -79,16 +81,21 @@ export default function Customers() {
     });
     setIsEditMode(true);
     setEditId(customer.id);
-    setShowModal(true);
+    setIsAddEditModalOpen(true);
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this customer?")) {
-      fetch(`http://localhost:5001/api/admin/customers/${id}`, { method: 'DELETE' })
-        .then(res => res.json())
-        .then(() => fetchCustomers())
-        .catch(err => console.error('Delete error:', err));
-    }
+    showStatusModal({
+      type: 'confirm',
+      title: 'DELETE CUSTOMER?',
+      message: 'Are you sure you want to delete this customer? This action cannot be undone.',
+      onConfirm: () => {
+        fetch(`http://localhost:5001/api/admin/customers/${id}`, { method: 'DELETE' })
+          .then(res => res.json())
+          .then(() => fetchCustomers())
+          .catch(err => console.error('Delete error:', err));
+      }
+    });
   };
 
   const handleSaveCustomer = () => {
@@ -119,8 +126,13 @@ export default function Customers() {
       .then(res => res.json())
       .then(() => {
         setSaving(false);
-        setShowModal(false);
+        setIsAddEditModalOpen(false);
         fetchCustomers();
+        showStatusModal({
+          type: 'success',
+          title: 'CUSTOMER SAVED',
+          message: 'Customer information has been successfully updated.'
+        });
       })
       .catch(err => {
         console.error('Save error:', err);
@@ -151,11 +163,11 @@ export default function Customers() {
           <h2>{data.stats.totalCustomers || 0}</h2>
         </div>
         <div className="customer-stat-card outline-gold">
-          <p>Active (Last 30 Days)</p>
+          <p>Active Customers</p>
           <h2>{data.stats.activeCount || 0}</h2>
         </div>
         <div className="customer-stat-card outline-gold">
-          <p>New This Month</p>
+          <p>New Customers</p>
           <h2 className="red-text">{data.stats.newMonthCount || 0}</h2>
         </div>
         
@@ -214,12 +226,12 @@ export default function Customers() {
         </table>
       </div>
 
-      {showModal && (
+      {isAddEditModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content add-customer-modal">
             <div className="modal-header">
               <h3>{isEditMode ? 'Edit Customer' : 'Add New Customer'}</h3>
-              <button className="close-btn" onClick={() => setShowModal(false)}><X size={20}/></button>
+              <button className="close-btn" onClick={() => setIsAddEditModalOpen(false)}><X size={20}/></button>
             </div>
             
             <div className="modal-body">
@@ -262,7 +274,7 @@ export default function Customers() {
             </div>
 
             <div className="modal-footer">
-               <button className="cancel-btn" onClick={() => setShowModal(false)}>Cancel</button>
+               <button className="cancel-btn" onClick={() => setIsAddEditModalOpen(false)}>Cancel</button>
                <button className="gold-solid-btn" onClick={handleSaveCustomer} disabled={saving}>
                  {saving ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Save Customer')}
                </button>

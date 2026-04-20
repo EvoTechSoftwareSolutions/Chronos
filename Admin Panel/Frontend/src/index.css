@@ -187,3 +187,13 @@ code {
   color: #d4af37 !important;
 }
 
+/* Global Select Styles */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #1a1a1a;
+  color: #fff;
+}
+

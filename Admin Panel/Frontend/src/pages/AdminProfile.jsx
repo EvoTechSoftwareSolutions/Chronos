@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
+import { useModal } from '../context/ModalContext';
 import Header from '../components/Header';
 
 import '../styles/AdminProfile.css';
@@ -10,9 +11,19 @@ export default function AdminProfile() {
   const [profile, setProfile] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { showModal } = useModal();
 
   useEffect(() => {
-    fetch('http://localhost:5001/api/admin/profile')
+    let adminId = 1;
+    const userStr = localStorage.getItem('adminUser');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user && user.id) adminId = user.id;
+      } catch (e) {}
+    }
+
+    fetch(`http://localhost:5001/api/admin/profile?id=${adminId}`)
       .then(res => res.json())
       .then(data => {
         setProfile(data);
@@ -30,7 +41,11 @@ export default function AdminProfile() {
       .then(res => res.json())
       .then(() => {
         setSaving(false);
-        alert('Profile saved!');
+        showModal({
+          type: 'success',
+          title: 'PROFILE SAVED',
+          message: 'Your personal information has been successfully saved.'
+        });
       })
       .catch(err => {
         console.error('Error saving profile:', err);

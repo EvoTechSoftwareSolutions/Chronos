@@ -10,18 +10,18 @@ exports.getCustomers = async (req, res) => {
 
     const [totalRes] = await pool.query('SELECT COUNT(*) as total FROM customers');
     
-    // Active (Last 30 Days) - Based on orders placed
+    // Active Customers
     const [activeRes] = await pool.query(`
-      SELECT COUNT(DISTINCT email) as active 
-      FROM orders 
-      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      SELECT COUNT(*) as active 
+      FROM customers 
+      WHERE status = 'Active' OR status = 'active'
     `);
 
-    // New This Month
+    // New Customers
     const [newMonthRes] = await pool.query(`
       SELECT COUNT(*) as newCount 
       FROM customers 
-      WHERE MONTH(join_date) = MONTH(NOW()) AND YEAR(join_date) = YEAR(NOW())
+      WHERE status = 'New' OR status = 'new'
     `);
 
     const statsResult = {
@@ -33,7 +33,7 @@ exports.getCustomers = async (req, res) => {
     res.status(200).json({
       customers: customers.map(c => ({
         ...c,
-        total_spent: `Rs. ${Number(c.total_spent || 0).toLocaleString()}`,
+        total_spent: `Rs.${Number(c.total_spent || 0).toLocaleString()}`,
         join_date: c.join_date ? new Date(c.join_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '---'
       })),
       stats: statsResult

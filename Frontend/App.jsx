@@ -2,6 +2,8 @@ import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CartProvider } from "./context/CartContext";
+import { PopupProvider } from "./context/PopupContext";
+import PopupModal from "./components/PopupModal";
 
 import Register from "./pages/Register/Register";
 import Login from "./pages/Login/Login";
@@ -19,6 +21,8 @@ import PaymentDetails from "./pages/Checkout/PaymentDetails";
 import OrderSuccess from "./pages/Checkout/OrderSuccess";
 import Privacy from "./pages/Privacy/Privacy";
 import Terms from "./pages/Terms/Terms";
+import AdminSSO from "./pages/AdminSSO";
+import AdminGateway from "./pages/AdminGateway";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -30,13 +34,19 @@ const ScrollToTop = () => {
 
 function App() {
   return (
-    <CartProvider>
+    <PopupProvider>
+      <CartProvider>
       <GoogleOAuthProvider clientId="90872154996-uovdvfs99noj5vm4iukv93lomlahks4f.apps.googleusercontent.com">
         <Router>
           <ScrollToTop />
-          <Routes>
+          <div className="relative">
+            <PopupModal />
+            <Routes>
+
             <Route path="/" element={<Register />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/admin-gateway" element={<AdminGateway />} />
+            <Route path="/admin-sso" element={<AdminSSO />} />
             <Route path="/home" element={<Home />} />
             <Route path="/collection" element={<Collection />} />
             <Route path="/about" element={<About />} />
@@ -51,10 +61,12 @@ function App() {
             <Route path="/checkout/success/:orderId" element={<OrderSuccess />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
-          </Routes>
-        </Router>
-      </GoogleOAuthProvider>
-    </CartProvider>
+              </Routes>
+            </div>
+          </Router>
+        </GoogleOAuthProvider>
+      </CartProvider>
+    </PopupProvider>
   );
 }
 

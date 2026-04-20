@@ -184,7 +184,7 @@ function Navbar() {
                           </div>
                           <div className="flex flex-col min-w-0 flex-1">
                             <span className="text-white text-xs font-semibold truncate group-hover:text-[#D4AF37] transition-colors">{product.name}</span>
-                            <span className="text-[#D4AF37] text-[10px] font-bold mt-0.5">{product.price}</span>
+                            <span className="text-[#D4AF37] text-[10px] font-bold mt-0.5">Rs. {String(product.price).replace('$', '').trim()}</span>
                           </div>
                         </button>
                       ))}

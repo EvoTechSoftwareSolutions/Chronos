@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, Plus, Edit2, Trash2, X, Upload } from 'lucide-react';
+import { useModal } from '../context/ModalContext';
 import Header from '../components/Header';
 
 import productPlaceholder from '../assets/watchlogo.png';
@@ -9,7 +10,8 @@ import '../styles/Products.css';
 export default function Products() {
   const [data, setData] = useState({ products: [], stats: {} });
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const { showModal: showStatusModal } = useModal();
+  const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -69,7 +71,7 @@ export default function Products() {
     setImageFiles([]);
     setIsEditMode(false);
     setEditId(null);
-    setShowModal(true);
+    setIsAddEditModalOpen(true);
   };
 
   const openEditModal = (product) => {
@@ -89,16 +91,21 @@ export default function Products() {
     setImageFiles([]);
     setIsEditMode(true);
     setEditId(product.id);
-    setShowModal(true);
+    setIsAddEditModalOpen(true);
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      fetch(`http://localhost:5001/api/admin/products/${id}`, { method: 'DELETE' })
-        .then(res => res.json())
-        .then(() => fetchProducts())
-        .catch(err => console.error('Delete error:', err));
-    }
+    showStatusModal({
+      type: 'confirm',
+      title: 'DELETE PRODUCT?',
+      message: 'Are you sure you want to delete this product? This action cannot be undone.',
+      onConfirm: () => {
+        fetch(`http://localhost:5001/api/admin/products/${id}`, { method: 'DELETE' })
+          .then(res => res.json())
+          .then(() => fetchProducts())
+          .catch(err => console.error('Delete error:', err));
+      }
+    });
   };
 
   const handleSaveProduct = () => {
@@ -119,15 +126,28 @@ export default function Products() {
       method,
       body: formData
     })
-      .then(res => res.json())
-      .then(() => {
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to save product');
+        
         setSaving(false);
-        setShowModal(false);
+        setIsAddEditModalOpen(false);
         fetchProducts(); 
+        
+        showStatusModal({
+          type: 'success',
+          title: isEditMode ? 'PRODUCT UPDATED' : 'PRODUCT ADDED',
+          message: isEditMode ? 'Product details have been updated successfully.' : 'New product has been added to the catalog.'
+        });
       })
       .catch(err => {
         console.error('Save error:', err);
         setSaving(false);
+        showStatusModal({
+          type: 'error',
+          title: 'SAVE FAILED',
+          message: err.message
+        });
       });
   };
 
@@ -241,12 +261,12 @@ export default function Products() {
         </table>
       </div>
 
-      {showModal && (
+      {isAddEditModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content add-product-modal">
             <div className="modal-header">
               <h3>{isEditMode ? 'Edit Product' : 'Add New Product'}</h3>
-              <button className="close-btn" onClick={() => setShowModal(false)}><X size={20}/></button>
+              <button className="close-btn" onClick={() => setIsAddEditModalOpen(false)}><X size={20}/></button>
             </div>
             <div className="modal-body">
               <div className="form-row triplet">
@@ -333,7 +353,7 @@ export default function Products() {
               </div>
             </div>
             <div className="modal-footer">
-               <button className="cancel-btn" onClick={() => setShowModal(false)}>Close</button>
+               <button className="cancel-btn" onClick={() => setIsAddEditModalOpen(false)}>Close</button>
                <button className="gold-solid-btn" onClick={handleSaveProduct} disabled={saving}>
                  {saving ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Save Product')}
                </button>

@@ -7,9 +7,11 @@ import '../SettingView and Collection.css';
 import SettingsView from '../SettingsView/SettingsView';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { usePopup } from '../../context/PopupContext';
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { showAlert } = usePopup();
   const [currentView, setCurrentView] = useState('main'); // 'main', 'orders', 'settings'
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'Customer', email: '' });
@@ -48,7 +50,7 @@ export default function Profile() {
                 productName: items[0]?.name || 'Chronos Timepiece',
                 productId: items[0]?.id,
                 itemsCount: items.length + (items.length === 1 ? ' Item' : ' Items'),
-                price: 'Rs. ' + o.total,
+                price: 'Rs. ' + String(o.total).replace('$', '').trim(),
                 address: `${o.address}, ${o.city}, ${o.province} ${o.zip_code}`,
                 payment: o.payment_method || 'Credit/Debit',
                 tracking: 'TRACK-' + Math.random().toString(36).substring(7).toUpperCase()
@@ -76,7 +78,7 @@ export default function Profile() {
     
     // GUARD: Ensure product ID exists (missing for orders placed before data sync fix)
     if (!selectedOrder.productId) {
-       alert("Data Limitation: This order was placed before the review system was fully integrated. Reviews can only be submitted for more recent purchases. We apologize for the inconvenience.");
+       showAlert("Data Limitation", "This order was placed before the review system was fully integrated. Reviews can only be submitted for more recent purchases.", "warning");
        setShowFeedback(false);
        return;
     }
@@ -103,7 +105,7 @@ export default function Profile() {
     .catch(err => {
       console.error(err);
       const msg = err.response?.data?.message || "Error submitting review. Please try again.";
-      alert(msg);
+      showAlert("Review Error", msg, "error");
       setSubmittingFeedback(false);
     });
   };
@@ -116,17 +118,31 @@ export default function Profile() {
     formData.append('avatar', file);
     formData.append('email', user.email);
 
-    // Update local state temporarily for UX
+    // Optimistic UI Update
     const reader = new FileReader();
     reader.onload = (event) => {
        const newUser = { ...user, avatar: event.target.result };
        setUser(newUser);
-       localStorage.setItem('user', JSON.stringify(newUser));
     };
     reader.readAsDataURL(file);
 
-    // In a real app we'd upload to backend here:
-    // axios.post('http://localhost:5000/api/user/avatar', formData)...
+    // Actual Upload
+    axios.post('/api/user/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    .then(res => {
+      if (res.data.success) {
+        const newUser = { ...user, avatar: res.data.avatar_url };
+        setUser(newUser);
+        localStorage.setItem('user', JSON.stringify(newUser));
+        // Force refresh all instances
+        window.location.reload();
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showAlert("Upload Failed", "Avatar synchronization failed. please check your connection.", "error");
+    });
   };
 
   const renderMain = () => (
@@ -359,7 +375,11 @@ export default function Profile() {
       <Navbar />
       {currentView === 'main' && renderMain()}
       {currentView === 'orders' && renderOrders()}
-      {currentView === 'settings' && <SettingsView onBack={() => setCurrentView('main')} />}
+      {currentView === 'settings' && (
+        <div className="main-content">
+          <SettingsView user={user} onBack={() => setCurrentView('main')} />
+        </div>
+      )}
       {toastStatus.show && (
         <div className="success-toast-overlay">
           <div className={`luxury-success-toast ${toastStatus.hiding ? 'hiding' : ''}`}>
