@@ -1,0 +1,19 @@
+[dotenv@17.3.1] injecting env (7) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+Server is running on port 5001
+Successfully connected to MySQL database (MVC)
+[Admin API] Generated Auto Product Code: CHRN-NV59GP for Archetype Loyalist Automatic all Black
+[Admin API] Generated Auto Product Code: CHRN-PD43Y1 for Archetype Loyalist Automatic all Black
+[Admin API] Generated Auto Product Code: CHRN-IWGR7A for Test User
+[Admin API] Generated Auto Product Code: CHRN-ASUKP4 for RoyalGold Elite Watch
+[Admin API] Generated Auto Product Code: CHRN-QYSMLH for SportLine Analog Watch
+[Admin API] Updating Order Status. ID: 21 -> 21, Status: Delivered
+[Admin API] Update result: ResultSetHeader {
+  fieldCount: 0,
+  affectedRows: 1,
+  insertId: 0,
+  info: 'Rows matched: 1  Changed: 1  Warnings: 0',
+  serverStatus: 2,
+  warningStatus: 0,
+  changedRows: 1
+}

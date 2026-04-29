@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import db from "../config/db.js";
 
 // ────────────────────────────────────────────────────────────
@@ -8,6 +9,8 @@ import db from "../config/db.js";
 // POST /api/admin/login
 export function adminLogin(req, res) {
   const { email, password } = req.body;
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) return res.status(500).json({ error: "Server misconfigured: JWT_SECRET missing" });
 
   const sql = "SELECT * FROM admin_profile WHERE email = ?";
   db.query(sql, [email], (err, results) => {
@@ -18,9 +21,15 @@ export function adminLogin(req, res) {
     const isMatch = bcrypt.compareSync(password, admin.password);
 
     if (isMatch) {
+      const token = jwt.sign(
+        { adminId: admin.id, email: admin.email, role: admin.role || "Admin" },
+        jwtSecret,
+        { expiresIn: "8h" }
+      );
       res.json({
         message: "Login successful!",
         user: { name: admin.name, email: admin.email, role: admin.role, avatar: admin.avatar_url },
+        token,
       });
     } else {
       res.status(401).json({ error: "Invalid admin credentials" });
@@ -324,6 +333,9 @@ export function getSettings(req, res) {
 // PUT /api/admin/settings
 export function updateSettings(req, res) {
   const { store_name, contact_email, phone_number, dark_mode, accent_color, email_alerts_orders, low_stock_alerts } = req.body;
+  if (req.auth?.role === "Store Information Admin") {
+    return res.status(403).json({ error: "Permission denied for this role" });
+  }
   const sql = `UPDATE settings SET store_name=?, contact_email=?, phone_number=?, dark_mode=?, accent_color=?, email_alerts_orders=?, low_stock_alerts=? WHERE id=1`;
   db.query(sql, [store_name, contact_email, phone_number, dark_mode, accent_color, email_alerts_orders, low_stock_alerts], (err) => {
     if (err) return res.status(500).json({ error: err.message });

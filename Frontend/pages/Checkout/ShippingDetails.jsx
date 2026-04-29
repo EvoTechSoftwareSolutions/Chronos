@@ -226,7 +226,7 @@ function ShippingDetails() {
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest truncate w-40">{item.name}</p>
                         <p className="text-[10px] text-gray-500 mt-1">Qty: {item.quantity}</p>
                       </div>
-                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
+                      <span className="text-xs font-medium text-white">Rs. {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -234,7 +234,7 @@ function ShippingDetails() {
                 <div className="flex flex-col gap-4 text-xs tracking-widest uppercase text-gray-400">
                   <div className="flex justify-between">
                     <span>Amount</span>
-                    <span className="text-white">$ {fmt(subtotal)}</span>
+                    <span className="text-white">Rs. {fmt(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
@@ -246,7 +246,7 @@ function ShippingDetails() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-white font-medium uppercase text-sm tracking-widest">Total</span>
-                  <span className="text-white text-xl font-semibold tracking-wide">$ {fmt(total)}</span>
+                  <span className="text-white text-xl font-semibold tracking-wide">Rs. {fmt(total)}</span>
                 </div>
               </div>
             </div>
@@ -273,7 +273,7 @@ function ShippingDetails() {
                   <div className="w-full h-px bg-[#D4AF37]/30 mb-4" />
                   <h4 className="text-white text-[13px] font-normal uppercase tracking-widest leading-snug mb-4 h-10 overflow-hidden">{p.name}</h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-white text-sm font-semibold tracking-wide">$ {fmt(p.priceNum)}</span>
+                    <span className="text-white text-sm font-semibold tracking-wide">Rs. {fmt(p.priceNum)}</span>
                     <button className="w-9 h-9 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all">
                       <CartBtnIcon />
                     </button>

@@ -13,6 +13,7 @@ import watch1 from '../assets/watch1bg(1).png';
 import watch2 from '../assets/watch1bg(2).png';
 import watch3 from '../assets/watchbg3.png';
 import watch4 from '../assets/watch1bg(3).png';
+import { apiFetch } from '../utils/api';
 
 // Fallback logic for images will be handled via CSS or regular img tags with alt.
 export default function Settings() {
@@ -43,7 +44,7 @@ export default function Settings() {
   const notificationsRef = useRef(null);
 
   useEffect(() => {
-    fetch('http://localhost:5001/api/admin/settings')
+    apiFetch('/api/admin/settings')
       .then(res => res.json())
       .then(data => {
         setSettings(data);
@@ -77,10 +78,9 @@ export default function Settings() {
       return;
     }
 
-    fetch('http://localhost:5001/api/admin/settings', {
+    apiFetch('/api/admin/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...settings, role: storedUser.role })
+      body: JSON.stringify({ ...settings })
     })
       .then(async res => {
         const data = await res.json();
@@ -103,9 +103,8 @@ export default function Settings() {
       return;
     }
 
-    fetch('http://localhost:5001/api/admin/profile/security', {
+    apiFetch('/api/admin/profile/security', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(securityData)
     })
       .then(async res => {

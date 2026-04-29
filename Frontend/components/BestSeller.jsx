@@ -32,7 +32,7 @@ function BestSeller() {
      fetch('http://localhost:5000/api/products')
       .then(res => res.json())
       .then(data => {
-         // Filter for Best Sellers (matching with LatestArrivals logic or explicitly marked)
+         if (!Array.isArray(data)) return; // guard against error responses
          const parsed = data.filter(p => p.isBestSeller).slice(0, 3).map((p, i) => {
              let imgList = [];
              try { imgList = JSON.parse(p.images); } catch(e){}
@@ -40,7 +40,7 @@ function BestSeller() {
                 id: p.id,
                 brand: p.brand,
                 name: p.name,
-                price: String(p.price).replace('$', '') + "$",
+                price: "Rs. " + Number(String(p.price).replace(/[^0-9.]/g, '') || 0).toLocaleString(),
                 rating: p.feedback_rate || '0.0',
                 reviews: p.feedback_count || '0',
                 category: p.category || 'luxury',
@@ -62,7 +62,7 @@ function BestSeller() {
     e.preventDefault();
     e.stopPropagation();
     
-    const priceNum = parseFloat(product.price.replace(/[,\$]/g, '')) || 0;
+    const priceNum = parseFloat(String(product.price).replace(/[^0-9.]/g, '')) || 0;
 
     addToCart({
       id: product.id,

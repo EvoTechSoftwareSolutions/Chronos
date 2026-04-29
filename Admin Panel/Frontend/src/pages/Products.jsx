@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import { Search, Plus, Edit2, Trash2, X, Upload } from 'lucide-react';
 import Header from '../components/Header';
 
 import productPlaceholder from '../assets/watchlogo.png';
 import '../styles/Products.css';
+import { apiFetch, getApiBaseUrl } from '../utils/api';
 
 export default function Products() {
   const [data, setData] = useState({ products: [], stats: {} });
@@ -13,7 +13,6 @@ export default function Products() {
   const [saving, setSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
-  const location = useLocation();
 
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -27,13 +26,12 @@ export default function Products() {
     brand: '',
     category: '',
     color: '',
-    strap_size: '',
     description: ''
   });
   const [imageFiles, setImageFiles] = useState([]);
 
   const fetchProducts = () => {
-    fetch('http://localhost:5001/api/admin/products')
+    apiFetch('/api/admin/products')
       .then(res => res.json())
       .then(json => {
         setData(json);
@@ -46,13 +44,6 @@ export default function Products() {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    if (queryParams.get('add') === 'true') {
-      openAddModal();
-    }
-  }, [location.search]);
-
   const handleInputChange = (e) => {
     setNewProduct({ ...newProduct, [e.target.name]: e.target.value });
   };
@@ -64,7 +55,7 @@ export default function Products() {
 
   const openAddModal = () => {
     setNewProduct({
-      name: '', product_code: '', price: '', stock_quantity: '', brand: '', category: '', color: '', strap_size: '', description: ''
+      name: '', product_code: '', price: '', stock_quantity: '', brand: '', category: '', color: '', description: ''
     });
     setImageFiles([]);
     setIsEditMode(false);
@@ -83,7 +74,6 @@ export default function Products() {
       brand: product.brand,
       category: product.category,
       color: product.color || '',
-      strap_size: product.strap_size || '',
       description: product.description || ''
     });
     setImageFiles([]);
@@ -94,7 +84,7 @@ export default function Products() {
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
-      fetch(`http://localhost:5001/api/admin/products/${id}`, { method: 'DELETE' })
+      apiFetch(`/api/admin/products/${id}`, { method: 'DELETE' })
         .then(res => res.json())
         .then(() => fetchProducts())
         .catch(err => console.error('Delete error:', err));
@@ -110,12 +100,12 @@ export default function Products() {
       formData.append('images', file);
     });
 
-    const url = isEditMode 
-      ? `http://localhost:5001/api/admin/products/${editId}` 
-      : 'http://localhost:5001/api/admin/products';
+    const url = isEditMode
+      ? `/api/admin/products/${editId}`
+      : '/api/admin/products';
     const method = isEditMode ? 'PUT' : 'POST';
 
-    fetch(url, {
+    apiFetch(url, {
       method,
       body: formData
     })
@@ -210,7 +200,7 @@ export default function Products() {
               <tr key={p.id}>
                 <td>
                   <img 
-                    src={p.image_url ? `http://localhost:5001${p.image_url}` : productPlaceholder} 
+                    src={p.image_url ? `${getApiBaseUrl()}${p.image_url}` : productPlaceholder} 
                     alt={p.name} 
                     className="product-img-thumb" 
                   />
@@ -219,7 +209,7 @@ export default function Products() {
                 <td className="prod-name-col">{p.name}</td>
                 <td className="brand-col">{p.brand}</td>
                 <td><span className="cat-badge">{p.category}</span></td>
-                <td>{p.price}</td>
+                <td>{typeof p.price === 'string' && p.price.includes('Rs') ? p.price : `Rs ${Number(String(p.price).replace(/[^0-9.]/g, '') || 0).toLocaleString()}`}</td>
                 <td>
                    <span className={p.stock_quantity > 0 ? "stock-badge green" : "stock-badge red"}>
                      {p.stock_quantity > 0 ? `${p.stock_quantity} in stock` : "Out of stock"}
@@ -251,7 +241,7 @@ export default function Products() {
             <div className="modal-body">
               <div className="form-row triplet">
                 <input name="name" type="text" value={newProduct.name} placeholder="Product Name" onChange={handleInputChange} className="form-input" />
-                <input name="price" type="number" value={newProduct.price} placeholder="Price ($)" onChange={handleInputChange} className="form-input" />
+                <input name="price" type="number" value={newProduct.price} placeholder="Price (Rs)" onChange={handleInputChange} className="form-input" />
                 <input name="stock_quantity" type="number" value={newProduct.stock_quantity} placeholder="Stock Quantity" onChange={handleInputChange} className="form-input" />
               </div>
               
@@ -286,20 +276,6 @@ export default function Products() {
                           style={{ background: c }}
                           onClick={() => setNewProduct({ ...newProduct, color: c })}
                         />
-                     ))}
-                   </div>
-                </div>
-                <div className="strap-selector">
-                   <label>Strap Size :</label>
-                   <div className="strap-options">
-                     {['24', '26', '28', '30', '32'].map(s => (
-                        <div 
-                           key={s} 
-                           className={`strap-circle ${newProduct.strap_size === s ? 'selected' : ''}`}
-                           onClick={() => setNewProduct({ ...newProduct, strap_size: s })}
-                        >
-                          {s}
-                        </div>
                      ))}
                    </div>
                 </div>

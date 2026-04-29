@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import Header from '../components/Header';
 
 import '../styles/AdminProfile.css';
+import { apiFetch } from '../utils/api';
 
 export default function AdminProfile() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function AdminProfile() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:5001/api/admin/profile')
+    apiFetch('/api/admin/profile')
       .then(res => res.json())
       .then(data => {
         setProfile(data);
@@ -23,8 +24,7 @@ export default function AdminProfile() {
 
   const handleSave = () => {
     setSaving(true);
-    fetch('http://localhost:5001/api/admin/profile', {      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+    apiFetch('/api/admin/profile', {      method: 'PUT',
       body: JSON.stringify(profile)
     })
       .then(res => res.json())

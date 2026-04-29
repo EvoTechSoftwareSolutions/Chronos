@@ -1,30 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import { Plus, Eye, FileText, Users, DollarSign, ShoppingCart, Box, TrendingUp } from 'lucide-react';
+import { Plus, Eye, FileText, Users, ShoppingCart, Box, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import '../styles/Dashboard.css';
+import { apiFetch } from '../utils/api';
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [adminName, setAdminName] = useState('Administrator');
+  const [adminName] = useState(() => {
+    const admin = JSON.parse(localStorage.getItem('adminUser') || '{}');
+    return admin?.name || 'Administrator';
+  });
   const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const admin = JSON.parse(localStorage.getItem('adminUser'));
-    if (admin && admin.name) setAdminName(admin.name);
-
-    fetch('http://localhost:5001/api/admin/dashboard')
-      .then(res => res.json())
+    apiFetch('/api/admin/dashboard')
+      .then(async res => {
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to fetch dashboard data');
+        return json;
+      })
       .then(data => {
         setData(data);
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
+        setData({ error: err.message });
         setLoading(false);
       });
   }, []);
@@ -35,7 +41,17 @@ export default function Dashboard() {
     o?.product?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  if (loading || !data) return <div className="loading">Loading Dashboard...</div>;
+  if (loading) return <div className="loading">Loading Dashboard...</div>;
+
+  if (data?.error) return (
+    <div className="error-container">
+      <h2>Error loading dashboard</h2>
+      <p>{data.error}</p>
+      <button onClick={() => window.location.reload()}>Retry</button>
+    </div>
+  );
+
+  if (!data) return <div className="loading">No data available</div>;
 
   return (
     <div className="dashboard">
@@ -50,7 +66,7 @@ export default function Dashboard() {
       <div className="stats-row">
         <div className="stat-card">
           <div className="stat-card-header">
-            <div className="icon-wrap gold-border"><DollarSign size={18} /></div>
+            <div className="icon-wrap gold-border">Rs</div>
             <div className="trend green"><TrendingUp size={14} /> +12.5%</div>
           </div>
           <div className="stat-card-body">
@@ -146,7 +162,7 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="month" stroke="#333" tick={{fill: '#666', fontSize: 12}} axisLine={false} tickLine={false} />
-                <YAxis dataKey="value" stroke="#333" tick={{fill: '#666', fontSize: 12}} axisLine={false} tickLine={false} tickFormatter={(val) => `$${val/1000}k`} />
+                <YAxis dataKey="value" stroke="#333" tick={{fill: '#666', fontSize: 12}} axisLine={false} tickLine={false} tickFormatter={(val) => `Rs ${val/1000}k`} />
                 <Tooltip contentStyle={{backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px'}} itemStyle={{color: '#d4af37'}}/>
                 <Area type="monotone" dataKey="value" stroke="#d4af37" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
               </AreaChart>

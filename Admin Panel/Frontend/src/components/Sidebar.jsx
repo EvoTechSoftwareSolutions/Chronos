@@ -8,6 +8,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    window.dispatchEvent(new Event('auth-changed'));
     navigate('/');
   };
 

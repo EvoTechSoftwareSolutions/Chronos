@@ -12,6 +12,15 @@ export function checkout(req, res) {
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.json({ success: false, message: "No items in order" });
   }
+  if (!shippingDetails?.firstName || !shippingDetails?.lastName || !shippingDetails?.address) {
+    return res.status(400).json({ success: false, message: "Incomplete shipping details" });
+  }
+  if (!shippingDetails?.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(shippingDetails.email))) {
+    return res.status(400).json({ success: false, message: "Valid email is required for checkout" });
+  }
+  if (![subtotal, discount, total].every((value) => Number.isFinite(Number(value)))) {
+    return res.status(400).json({ success: false, message: "Invalid order totals" });
+  }
 
   const userEmail = email || (shippingDetails && shippingDetails.email) || null;
   const { firstName, lastName, address, mobile, city, province, zipCode } = shippingDetails || {};
@@ -130,6 +139,10 @@ export function getUserOrders(req, res) {
 export function updatePaymentStatus(req, res) {
   const { orderId, status } = req.body;
   if (!orderId || !status) return res.status(400).json({ success: false, message: "orderId and status required" });
+  const allowedStatuses = ["Pending", "Paid", "Canceled", "Failed", "Chargedback"];
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({ success: false, message: "Invalid payment status" });
+  }
 
   const sql = "UPDATE orders SET payment_status = ? WHERE id = ?";
   db.query(sql, [status, orderId], (err, result) => {

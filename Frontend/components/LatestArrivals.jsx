@@ -32,6 +32,7 @@ function LatestArrivals() {
      fetch('http://localhost:5000/api/products')
       .then(res => res.json())
       .then(data => {
+         if (!Array.isArray(data)) return; // guard against error responses
          const parsed = data.slice(0, 3).map((p, i) => {
              let imgList = [];
              try { imgList = JSON.parse(p.images); } catch(e){}
@@ -40,7 +41,7 @@ function LatestArrivals() {
                 brand: p.brand,
                 name: p.name,
                 category: p.category || 'luxury',
-                price: String(p.price)+"$",
+                price: "Rs. " + Number(String(p.price).replace(/[^0-9.]/g, '') || 0).toLocaleString(),
                 rating: p.feedback_rate || '0.0',
                 reviews: p.feedback_count || '0',
                 image: imgList[0] ? `http://localhost:5000${imgList[0]}` : p.image_url ? `http://localhost:5000${p.image_url}` : "",
@@ -62,7 +63,7 @@ function LatestArrivals() {
     e.stopPropagation();
     
     // Safety fallback for priceNum parsing to support older dummy data "$120.00"
-    const priceNum = parseFloat(watch.price.replace(/[,\$]/g, '')) || 0;
+    const priceNum = parseFloat(String(watch.price).replace(/[^0-9.]/g, '')) || 0;
 
     addToCart({
       id: watch.id,

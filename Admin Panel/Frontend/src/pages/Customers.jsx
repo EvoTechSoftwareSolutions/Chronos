@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { Search, Plus, Edit2, Trash2, X } from 'lucide-react';
 import '../styles/Customers.css';
+import { apiFetch } from '../utils/api';
 
 export default function Customers() {
-  const navigate = useNavigate();
-
   const [data, setData] = useState({ customers: [], stats: {} });
   const [loading, setLoading] = useState(true);
   
@@ -27,7 +25,7 @@ export default function Customers() {
   });
 
   const fetchCustomers = () => {
-    fetch('http://localhost:5001/api/admin/customers')
+    apiFetch('/api/admin/customers')
       .then(res => res.json())
       .then(json => {
         setData(json);
@@ -63,7 +61,7 @@ export default function Customers() {
     try {
       const d = new Date(customer.join_date);
       formattedDate = d.toISOString().split('T')[0];
-    } catch(e) {
+    } catch {
       formattedDate = new Date().toISOString().split('T')[0];
     }
 
@@ -84,7 +82,7 @@ export default function Customers() {
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this customer?")) {
-      fetch(`http://localhost:5001/api/admin/customers/${id}`, { method: 'DELETE' })
+      apiFetch(`/api/admin/customers/${id}`, { method: 'DELETE' })
         .then(res => res.json())
         .then(() => fetchCustomers())
         .catch(err => console.error('Delete error:', err));
@@ -106,14 +104,13 @@ export default function Customers() {
       initials: init
     };
 
-    const url = isEditMode 
-      ? `http://localhost:5001/api/admin/customers/${editId}` 
-      : 'http://localhost:5001/api/admin/customers';
+    const url = isEditMode
+      ? `/api/admin/customers/${editId}`
+      : '/api/admin/customers';
     const method = isEditMode ? 'PUT' : 'POST';
 
-    fetch(url, {
+    apiFetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
       .then(res => res.json())
@@ -240,7 +237,7 @@ export default function Customers() {
                   <input name="orders_count" type="number" value={newCustomer.orders_count} placeholder="Orders" onChange={handleInputChange} className="form-input" style={{width: '80%'}}/>
                 </div>
                 <div style={{flex: 1}}>
-                  <label className="form-label">Total Spent ($)</label>
+                  <label className="form-label">Total Spent (Rs)</label>
                   <input name="total_spent" type="number" step="0.01" value={newCustomer.total_spent} placeholder="Spent" onChange={handleInputChange} className="form-input" style={{width: '80%'}}/>
                 </div>
                 <div style={{flex: 1}}>

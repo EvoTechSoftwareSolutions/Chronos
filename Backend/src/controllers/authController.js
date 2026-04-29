@@ -64,10 +64,12 @@ export function login(req, res) {
 export function googleRegister(req, res) {
   const { name, email, password } = req.body;
   const account_id = "ACC-" + crypto.randomBytes(3).toString("hex").toUpperCase();
+  const generatedPassword = password || crypto.randomBytes(12).toString("hex");
+  const hashedPassword = bcrypt.hashSync(generatedPassword, 10);
 
   const sql = "INSERT INTO users (account_id, name, email, password) VALUES (?, ?, ?, ?)";
 
-  db.query(sql, [account_id, name, email, password], (err, result) => {
+  db.query(sql, [account_id, name, email, hashedPassword], (err, result) => {
     if (err) {
       if (err.code === "ER_DUP_ENTRY") {
         return res.json({ success: true });

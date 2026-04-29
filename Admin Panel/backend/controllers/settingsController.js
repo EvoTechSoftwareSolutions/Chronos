@@ -21,9 +21,9 @@ exports.updateSettings = async (req, res) => {
     accent_color,
     email_alerts_orders,
     low_stock_alerts,
-    role // Role passed from frontend for validation
   } = req.body;
   
+  const role = req.auth?.role;
   if (role === 'Store Information Admin') {
     return res.status(403).json({ error: 'Permission Denied: Store Information Admins cannot modify store settings.' });
   }

@@ -67,6 +67,7 @@ export default function Profile() {
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('cart');
+    window.dispatchEvent(new Event('auth-changed'));
     navigate('/login');
   };
 

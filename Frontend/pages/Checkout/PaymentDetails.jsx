@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import emailjs from '@emailjs/browser';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useCart } from '../../context/CartContext';
@@ -85,6 +86,35 @@ function PaymentDetails() {
       // Get logged-in user from localStorage
       const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+      const itemsListText = cartItems.map(item => `${item.quantity}x ${item.brand} ${item.name} - Rs. ${fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}`).join('\n');
+
+      const sendOrderEmail = (orderId, customerName, totalAmount, itemsText) => {
+        const shippingEmail = shippingDetails?.email;
+        const profileEmail = user?.email;
+        
+        const emailsToSend = [...new Set([shippingEmail, profileEmail])].filter(Boolean);
+
+        if (emailsToSend.length === 0) return;
+
+        const emailMessage = `Your order #${orderId} has been successfully placed.\n\nItems:\n${itemsText}\n\nTotal: Rs. ${fmt(totalAmount)}\n\nThank you for shopping with Chronos Luxury Watches.`;
+        
+        emailsToSend.forEach(email => {
+          const templateParams = {
+            to_name: customerName,
+            to_email: email,
+            order_id: orderId,
+            total_amount: `Rs. ${fmt(totalAmount)}`,
+            items_list: itemsText,
+            message: emailMessage,
+            reply_to: 'support@chronos.com'
+          };
+
+          emailjs.send('service_x486mx3', 'template_0wiujko', templateParams, '_VBkrk2a0KdGSbidM')
+            .then((response) => console.log(`Invoice email sent to ${email}!`, response.status, response.text))
+            .catch((err) => console.error(`Invoice email failed for ${email}...`, err));
+        });
+      };
+
       const payload = {
         items: cartItems.map((item) => ({
           id: item.id,
@@ -115,7 +145,7 @@ function PaymentDetails() {
           const hashRes = await axios.post('http://localhost:5000/generate-payhere-hash', {
             order_id: orderId,
             amount: total,
-            currency: 'USD'
+            currency: 'LKR'
           });
 
           const { hash, merchant_id } = hashRes.data;
@@ -130,7 +160,7 @@ function PaymentDetails() {
             order_id: String(orderId),
             items: "Chronos Luxury Watches Order #" + orderId,
             amount: Number(total).toFixed(2),
-            currency: "USD",
+            currency: "LKR",
             hash: hash,
             first_name: shippingDetails?.firstName || "Guest",
             last_name: shippingDetails?.lastName || "Customer",
@@ -148,6 +178,9 @@ function PaymentDetails() {
                status: 'Paid'
             }).catch(console.error);
 
+            // Send Email Invoice
+            sendOrderEmail(orderId, shippingDetails?.firstName || 'Customer', total, itemsListText);
+
             clearCart();
             setLoading(false);
             navigate(`/checkout/success/${orderId}`);
@@ -164,6 +197,9 @@ function PaymentDetails() {
           window.payhere.startPayment(payment);
 
         } else {
+          // Send Email Invoice
+          sendOrderEmail(orderId, shippingDetails?.firstName || 'Customer', total, itemsListText);
+
           clearCart();
           setSuccessMsg("Order placed successfully! Order ID: " + orderId);
           setLoading(false);
@@ -337,7 +373,7 @@ function PaymentDetails() {
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest truncate w-40">{item.name}</p>
                         <p className="text-[10px] text-gray-500 mt-1">Qty: {item.quantity}</p>
                       </div>
-                      <span className="text-xs font-medium text-white">$ {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
+                      <span className="text-xs font-medium text-white">Rs. {fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -345,7 +381,7 @@ function PaymentDetails() {
                 <div className="flex flex-col gap-4 text-xs tracking-widest uppercase text-gray-400">
                   <div className="flex justify-between">
                     <span>Amount</span>
-                    <span className="text-white">$ {fmt(subtotal)}</span>
+                    <span className="text-white">Rs. {fmt(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
@@ -357,7 +393,7 @@ function PaymentDetails() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-white font-medium uppercase text-sm tracking-widest">Total</span>
-                  <span className="text-white text-xl font-semibold tracking-wide">$ {fmt(total)}</span>
+                  <span className="text-white text-xl font-semibold tracking-wide">Rs. {fmt(total)}</span>
                 </div>
               </div>
             </div>
@@ -385,7 +421,7 @@ function PaymentDetails() {
                   <div className="w-full h-px bg-[#D4AF37]/30 mb-4" />
                   <h4 className="text-white text-[13px] font-normal uppercase tracking-widest leading-snug mb-4 h-10 overflow-hidden">{p.name}</h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-white text-sm font-semibold tracking-wide">$ {fmt(p.price || p.priceNum || 0)}</span>
+                    <span className="text-white text-sm font-semibold tracking-wide">Rs. {fmt(p.price || p.priceNum || 0)}</span>
                     <button className="w-9 h-9 rounded-full border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all">
                       <CartBtnIcon />
                     </button>

@@ -30,7 +30,6 @@ const DESCRIPTIONS = {
 };
 
 const TAGS        = ['Order Free', 'Free Delivery', 'Last Price'];
-const SIZES       = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const COLORS_HEX  = ['#D4AF37', '#F5F5F5', '#1A1A1A', '#1E88E5', '#FFFFFF'];
 
 
@@ -131,7 +130,6 @@ function ProductDetail() {
   }, [product]);
 
   const [activeColor, setActiveColor] = useState(COLORS_HEX[0]);
-  const [activeSize,  setActiveSize]  = useState('M');
   const [qty,         setQty]         = useState(1);
   const [showTop,     setShowTop]     = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -165,7 +163,6 @@ function ProductDetail() {
       image:    images[0],
       tags:     product.tags || [],
       color:    activeColor,
-      size:     activeSize,
       quantity: qty,
     });
     setAddedToCart(true);
@@ -304,7 +301,7 @@ function ProductDetail() {
 
             {/* Price */}
             <p className="text-[#D4AF37] text-4xl lg:text-5xl font-bold tracking-tight text-center lg:text-left mt-4 py-2">
-              $ <span className="ml-2">{String(product.price).replace('$', '').trim()}</span>
+              Rs. <span className="ml-2">{String(product.price).replace(/[^0-9.]/g, '').trim()}</span>
             </p>
 
             {/* Description */}
@@ -352,25 +349,6 @@ function ProductDetail() {
                  </div>
               </div>
 
-              {/* Strap Size */}
-              <div className="flex items-center gap-8">
-                <p className="text-white text-sm font-bold tracking-widest min-w-[100px]">Strap Size :</p>
-                <div className="flex gap-3">
-                  {[24, 26, 28, 30, 32].map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setActiveSize(String(s))}
-                      className={`w-11 h-11 rounded-full text-xs font-bold border transition-all duration-500 flex items-center justify-center ${
-                        activeSize === String(s)
-                          ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)] scale-110'
-                          : 'bg-transparent text-gray-500 border-white/10 hover:border-[#D4AF37]/40 hover:text-white'
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               {/* Quantity */}
               <div className="flex items-center gap-8">
@@ -495,7 +473,7 @@ function ProductDetail() {
               <div className="px-4 py-3">
                 <p className="text-[#D4AF37] text-[10px] tracking-[0.2em] uppercase font-medium mb-1">{p.brand}</p>
                 <h4 className="text-white text-sm font-medium uppercase tracking-wide mb-1">{p.name}</h4>
-                <p className="text-white text-sm font-semibold">$ {p.price}</p>
+                <p className="text-white text-sm font-semibold">Rs. {String(p.price).replace(/[^0-9.]/g, '')}</p>
               </div>
             </Link>
           ))}

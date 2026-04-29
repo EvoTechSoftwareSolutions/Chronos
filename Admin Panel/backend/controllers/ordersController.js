@@ -32,7 +32,7 @@ exports.getOrders = async (req, res) => {
           customer_id: row.customer_id || 'GUEST',
           customer: row.customer_name || `${row.first_name || ''} ${row.last_name || ''}`.trim() || 'Guest',
           items_summary: itemsArr.map(i => i.name).join(', '),
-          total_formatted: `$${Number(row.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          total_formatted: `Rs ${Number(row.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
           date_formatted: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           status: row.order_status || 'Pending'
         };

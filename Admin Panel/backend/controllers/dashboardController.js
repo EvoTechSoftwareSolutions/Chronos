@@ -84,7 +84,7 @@ exports.getDashboardStats = async (req, res) => {
 
     const dashboardData = {
       stats: {
-        revenue: { value: `$${Number(totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, trend: '+12.5%' },
+        revenue: { value: `Rs ${Number(totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, trend: '+12.5%' },
         orders: { value: totalOrders.toString(), trend: '+8.2%' },
         customers: { value: totalCustomers.toString(), trend: '+5.1%' },
         products: { value: totalProducts.toString(), trend: '0%' }
@@ -103,7 +103,7 @@ exports.getDashboardStats = async (req, res) => {
           id: `#${row.id}`,
           customer: row.customer,
           product: productName,
-          amount: `$${Number(row.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          amount: `Rs ${Number(row.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
           status: row.status || 'Pending'
         };
       }),

@@ -46,9 +46,6 @@ exports.updateProfile = async (req, res) => {
 
 exports.updateSecurity = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: 'Current and new passwords are required' });
-  }
 
   try {
     // 1. Get the current admin record (assume ID 1 for now or from session)
@@ -59,9 +56,7 @@ exports.updateSecurity = async (req, res) => {
 
     // 2. Verify current password
     const isMatch = await bcrypt.compare(currentPassword, admin.password);
-    const isPlainTextMatch = (currentPassword === admin.password); // Fallback for transition
-
-    if (!isMatch && !isPlainTextMatch) {
+    if (!isMatch) {
       return res.status(401).json({ error: 'Incorrect current password' });
     }
 

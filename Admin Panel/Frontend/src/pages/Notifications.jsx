@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, Trash2, CheckCircle, Clock, AlertTriangle, Info } from 'lucide-react';
 import '../styles/Notifications.css';
+import { apiFetch } from '../utils/api';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchNotifications = () => {
-    setLoading(true);
-    fetch('http://localhost:5001/api/admin/notifications')
+  useEffect(() => {
+    apiFetch('/api/admin/notifications')
       .then(res => res.json())
       .then(json => {
         setNotifications(json);
@@ -19,14 +19,10 @@ export default function Notifications() {
         console.error('Fetch error:', err);
         setLoading(false);
       });
-  };
-
-  useEffect(() => {
-    fetchNotifications();
   }, []);
 
   const markAsRead = (id) => {
-    fetch(`http://localhost:5001/api/admin/notifications/${id}/read`, { method: 'PUT' })
+    apiFetch(`/api/admin/notifications/${id}/read`, { method: 'PUT' })
       .then(res => res.json())
       .then(json => {
         if (json.success) {
@@ -37,7 +33,7 @@ export default function Notifications() {
   };
 
   const markAllAsRead = () => {
-    fetch('http://localhost:5001/api/admin/notifications/mark-all-read', { method: 'PUT' })
+    apiFetch('/api/admin/notifications/mark-all-read', { method: 'PUT' })
       .then(res => res.json())
       .then(json => {
         if (json.success) {
