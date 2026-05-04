@@ -33,7 +33,7 @@ exports.getCustomers = async (req, res) => {
     res.status(200).json({
       customers: customers.map(c => ({
         ...c,
-        total_spent: `Rs.${Number(c.total_spent || 0).toLocaleString()}`,
+        total_spent: `Rs ${Number(c.total_spent || 0).toLocaleString()}`,
         join_date: c.join_date ? new Date(c.join_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '---'
       })),
       stats: statsResult

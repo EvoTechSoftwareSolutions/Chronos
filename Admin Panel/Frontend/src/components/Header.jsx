@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Bell, Menu } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import '../styles/Dashboard.css'; // Reuse existing styles for consistency
+import { apiFetch } from '../utils/api';
 
 export default function Header({ title, subtitle, searchTerm, setSearchTerm, searchPlaceholder = "Search..." }) {
   const { setIsSidebarOpen } = useOutletContext();
@@ -10,7 +11,7 @@ export default function Header({ title, subtitle, searchTerm, setSearchTerm, sea
   const navigate = useNavigate();
 
   const fetchNotifications = () => {
-    fetch('http://localhost:5001/api/admin/dashboard')
+    apiFetch('/api/admin/dashboard')
       .then(res => res.json())
       .then(data => {
         if (data.notifications) setNotifications(data.notifications);
@@ -30,7 +31,7 @@ export default function Header({ title, subtitle, searchTerm, setSearchTerm, sea
 
   const handleClearNotification = (e, id) => {
     e.stopPropagation(); // Prevent navigating to notifications page
-    fetch(`http://localhost:5001/api/admin/notifications/${id}/read`, { method: 'PUT' })
+    apiFetch(`/api/admin/notifications/${id}/read`, { method: 'PUT' })
       .then(res => res.json())
       .then(json => {
         if (json.success) {
@@ -42,7 +43,7 @@ export default function Header({ title, subtitle, searchTerm, setSearchTerm, sea
 
   const handleClearAll = (e) => {
     e.stopPropagation();
-    fetch('http://localhost:5001/api/admin/notifications/mark-all-read', { method: 'PUT' })
+    apiFetch('/api/admin/notifications/mark-all-read', { method: 'PUT' })
       .then(res => res.json())
       .then(json => {
         if (json.success) {

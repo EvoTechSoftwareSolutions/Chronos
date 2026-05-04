@@ -117,7 +117,7 @@ function Hero() {
             </svg>
             <div className="flex flex-col text-left">
               <span className="text-white font-medium text-[11px] lg:text-[13px]">Free Delivery</span>
-              <span className="text-[9px] lg:text-[10px] text-gray-400">Upto Rs. 500</span>
+              <span className="text-[9px] lg:text-[10px] text-gray-400">Upto Rs. 150,000</span>
             </div>
           </div>
 

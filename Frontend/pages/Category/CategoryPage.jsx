@@ -87,7 +87,7 @@ function ProductCard({ id, category, brand, name, price, image, isNew, isBestSel
       <div className="px-4 py-3">
         <p className="text-[#aaa] text-[10px] tracking-[0.2em] uppercase font-medium mb-1">{brand}</p>
         <h4 className="text-white text-sm font-medium leading-snug tracking-wide mb-2 uppercase">{name}</h4>
-        <p className="text-[#D4AF37] text-sm font-semibold">Rs. {String(price).replace('$', '').trim()}</p>
+        <p className="text-[#D4AF37] text-sm font-semibold">Rs. {price}</p>
       </div>
     </Link>
   );

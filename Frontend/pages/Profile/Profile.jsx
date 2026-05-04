@@ -69,6 +69,7 @@ export default function Profile() {
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('cart');
+    window.dispatchEvent(new Event('auth-changed'));
     navigate('/login');
   };
 
@@ -377,7 +378,7 @@ export default function Profile() {
       {currentView === 'orders' && renderOrders()}
       {currentView === 'settings' && (
         <div className="main-content">
-          <SettingsView user={user} onBack={() => setCurrentView('main')} />
+          <SettingsView user={user} setUser={setUser} onBack={() => setCurrentView('main')} />
         </div>
       )}
       {toastStatus.show && (

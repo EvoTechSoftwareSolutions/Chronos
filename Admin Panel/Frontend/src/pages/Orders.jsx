@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { X, Package, MapPin, CreditCard, ChevronRight, Eye, Edit2, Trash2 } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import '../styles/Orders.css';
+import { apiFetch } from '../utils/api';
 
 export default function Orders() {
-  const navigate = useNavigate();
-  const { showModal } = useModal();
-
   const [data, setData] = useState({ orders: [], stats: {} });
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
 
+  const { showModal } = useModal();
+
   const fetchOrders = () => {
-    fetch('http://localhost:5001/api/admin/orders')
+    apiFetch('/api/admin/orders')
       .then(res => res.json())
       .then(json => {
         setData(json);
@@ -32,9 +31,8 @@ export default function Orders() {
   const handleStatusUpdate = (id, newStatus) => {
     const cleanId = id.replace('#', '');
     
-    fetch(`http://localhost:5001/api/admin/orders/${cleanId}`, {
+    apiFetch(`/api/admin/orders/${cleanId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ order_status: newStatus })
     })
       .then(res => {
@@ -262,20 +260,18 @@ export default function Orders() {
                             <span className="qty-tag">{item.quantity}x</span>
                             <span className="product-name">{item.name}</span>
                          </div>
-                          <span className="item-price">
-                             Rs. {Number(item.priceNum || parseFloat(String(item.price || 0).replace(/[^0-9.]/g, '')) || 0).toLocaleString()}
-                          </span>
-                       </div>
+                         <span className="item-price">Rs {(item.priceNum || 0).toLocaleString()}</span>
+                      </div>
                    ))}
                 </div>
                 <div className="order-summary-box">
                    <div className="summary-row">
                       <span>Subtotal</span>
-                      <span>Rs. {Number(selectedOrder.subtotal || 0).toLocaleString()}</span>
+                      <span>Rs {Number(selectedOrder.subtotal || 0).toLocaleString()}</span>
                    </div>
                    <div className="summary-row">
                       <span>Discount</span>
-                      <span className="red-text">-Rs. {Number(selectedOrder.discount || 0).toLocaleString()}</span>
+                      <span className="red-text">-Rs {Number(selectedOrder.discount || 0).toLocaleString()}</span>
                    </div>
                    <div className="summary-row total-row">
                       <span>Total</span>

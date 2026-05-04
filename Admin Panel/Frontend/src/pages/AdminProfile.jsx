@@ -1,29 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { useModal } from '../context/ModalContext';
 import Header from '../components/Header';
 
 import '../styles/AdminProfile.css';
+import { apiFetch } from '../utils/api';
 
 export default function AdminProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { showModal } = useModal();
 
   useEffect(() => {
-    let adminId = 1;
-    const userStr = localStorage.getItem('adminUser');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user && user.id) adminId = user.id;
-      } catch (e) {}
-    }
-
-    fetch(`http://localhost:5001/api/admin/profile?id=${adminId}`)
+    apiFetch('/api/admin/profile')
       .then(res => res.json())
       .then(data => {
         setProfile(data);
@@ -34,18 +24,17 @@ export default function AdminProfile() {
 
   const handleSave = () => {
     setSaving(true);
-    fetch('http://localhost:5001/api/admin/profile', {      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+    apiFetch('/api/admin/profile', {      method: 'PUT',
       body: JSON.stringify(profile)
     })
       .then(res => res.json())
       .then(() => {
         setSaving(false);
-        showModal({
-          type: 'success',
-          title: 'PROFILE SAVED',
-          message: 'Your personal information has been successfully saved.'
-        });
+        const storedUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        const updatedUser = { ...storedUser, name: profile.name, role: profile.role };
+        localStorage.setItem('adminUser', JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event('storage')); // trigger updates across tabs/components
+        alert('Profile saved!');
       })
       .catch(err => {
         console.error('Error saving profile:', err);
@@ -68,7 +57,7 @@ export default function AdminProfile() {
       
       <div className="profile-header-card">
         <div className="profile-identity">
-          <h3>{profile.first_name || 'Admin'} {profile.last_name || ''}</h3>
+          <h3>{profile.name || 'Admin'}</h3>
           <span className="status-badge active">Active</span>
         </div>
         
@@ -87,12 +76,8 @@ export default function AdminProfile() {
 
         <div className="form-grid">
           <div className="form-group">
-            <label>First Name</label>
-            <input name="first_name" type="text" value={profile.first_name || ''} onChange={handleChange} />
-          </div>
-          <div className="form-group">
-            <label>Last Name</label>
-            <input name="last_name" type="text" value={profile.last_name || ''} onChange={handleChange} />
+            <label>Name</label>
+            <input name="name" type="text" value={profile.name || ''} onChange={handleChange} />
           </div>
           <div className="form-group">
             <label>Email Address</label>

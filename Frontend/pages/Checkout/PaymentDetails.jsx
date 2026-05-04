@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import emailjs from '@emailjs/browser';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useCart } from '../../context/CartContext';
-import emailjs from '@emailjs/browser';
 
 // Payment Logos
 import creditLogo from '../../assets/images/ui/credit.png';
@@ -132,6 +132,35 @@ function PaymentDetails() {
       // Get logged-in user from localStorage
       const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+      const itemsListText = cartItems.map(item => `${item.quantity}x ${item.brand} ${item.name} - Rs. ${fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}`).join('\n');
+
+      const sendOrderEmail = (orderId, customerName, totalAmount, itemsText) => {
+        const shippingEmail = shippingDetails?.email;
+        const profileEmail = user?.email;
+        
+        const emailsToSend = [...new Set([shippingEmail, profileEmail])].filter(Boolean);
+
+        if (emailsToSend.length === 0) return;
+
+        const emailMessage = `Your order #${orderId} has been successfully placed.\n\nItems:\n${itemsText}\n\nTotal: Rs. ${fmt(totalAmount)}\n\nThank you for shopping with Chronos Luxury Watches.`;
+        
+        emailsToSend.forEach(email => {
+          const templateParams = {
+            to_name: customerName,
+            to_email: email,
+            order_id: orderId,
+            total_amount: `Rs. ${fmt(totalAmount)}`,
+            items_list: itemsText,
+            message: emailMessage,
+            reply_to: 'support@chronos.com'
+          };
+
+          emailjs.send('service_x486mx3', 'template_0wiujko', templateParams, '_VBkrk2a0KdGSbidM')
+            .then((response) => console.log(`Invoice email sent to ${email}!`, response.status, response.text))
+            .catch((err) => console.error(`Invoice email failed for ${email}...`, err));
+        });
+      };
+
       const payload = {
         items: cartItems.map((item) => ({
           id: item.id,
@@ -195,7 +224,8 @@ function PaymentDetails() {
                status: 'Paid'
             }).catch(console.error);
 
-            sendOrderMails(orderId);
+            // Send Email Invoice
+            sendOrderEmail(orderId, shippingDetails?.firstName || 'Customer', total, itemsListText);
 
             clearCart();
             setLoading(false);
@@ -218,7 +248,6 @@ function PaymentDetails() {
           setSuccessMsg("Order placed successfully! Order ID: " + orderId);
           setLoading(false);
         }
-
       } else {
         setError(res.data.message || "Order placement failed.");
         setLoading(false);

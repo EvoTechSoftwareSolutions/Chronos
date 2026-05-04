@@ -14,55 +14,104 @@ function Register() {
     password: "",
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState({ name: "", email: "", password: "" });
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [touched, setTouched] = useState({ name: false, email: false, password: false });
 
   // Handle Input
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+
+    // live-validate only if field already touched
+    if (touched[name]) {
+      const next = { ...formData, [name]: value };
+      setErrors((prev) => ({ ...prev, [name]: validateField(name, next[name], next) }));
+    }
   };
 
-  // Validation
-  const validate = () => {
-    let newErrors = {};
+  const normalizeName = (value) => String(value || "").replace(/\s+/g, " ").trim();
+  const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 
-    if (!formData.name) newErrors.name = "Full Name is required";
+  const validateField = (field, rawValue, all) => {
+    const value = String(rawValue || "");
 
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
+    if (field === "name") {
+      const name = normalizeName(value);
+      if (!name) return "Full name is required.";
+      if (name.length < 3) return "Full name must be at least 3 characters.";
+      if (!/^[A-Za-z][A-Za-z\s.'-]*$/.test(name)) return "Full name can only contain letters and spaces.";
+      if (name.split(" ").filter(Boolean).length < 2) return "Please enter first name and last name.";
+      return "";
     }
 
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be 6+ characters";
+    if (field === "email") {
+      const email = normalizeEmail(value);
+      if (!email) return "Email is required.";
+      if (email.length > 254) return "Email is too long.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email address.";
+      return "";
     }
 
-    return newErrors;
+    if (field === "password") {
+      const pwd = value;
+      if (!pwd) return "Password is required.";
+      if (/\s/.test(pwd)) return "Password cannot contain spaces.";
+      if (pwd.length < 8) return "Password must be at least 8 characters.";
+      if (!/[A-Z]/.test(pwd)) return "Password must include at least 1 uppercase letter.";
+      if (!/[a-z]/.test(pwd)) return "Password must include at least 1 lowercase letter.";
+      if (!/\d/.test(pwd)) return "Password must include at least 1 number.";
+      if (!/[^A-Za-z0-9]/.test(pwd)) return "Password must include at least 1 symbol.";
+      if (normalizeEmail(all.email) && pwd.toLowerCase().includes(normalizeEmail(all.email).split("@")[0])) {
+        return "Password should not contain your email/username.";
+      }
+      return "";
+    }
+
+    return "";
+  };
+
+  const validateAll = (data) => {
+    return {
+      name: validateField("name", data.name, data),
+      email: validateField("email", data.email, data),
+      password: validateField("password", data.password, data),
+    };
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    setErrors((prev) => ({ ...prev, [name]: validateField(name, formData[name], formData) }));
   };
 
   //NORMAL REGISTER
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const validationErrors = validate();
+    const validationErrors = validateAll(formData);
 
-    if (Object.keys(validationErrors).length > 0) {
+    const hasErrors = Object.values(validationErrors).some(Boolean);
+    if (hasErrors) {
+      setTouched({ name: true, email: true, password: true });
       setErrors(validationErrors);
-      setMessage("Please fix the errors");
+      setMessage("Please fix the highlighted fields and try again.");
       setIsSuccess(false);
     } else {
       try {
-        const res = await axios.post("http://localhost:5000/register", formData);
+        const payload = {
+          name: normalizeName(formData.name),
+          email: normalizeEmail(formData.email),
+          password: formData.password,
+        };
+        const res = await axios.post("http://localhost:5000/register", payload);
 
         if (res.data.success) {
-          setErrors({});
+          setErrors({ name: "", email: "", password: "" });
           setMessage("Account created successfully");
           setIsSuccess(true);
 
@@ -70,12 +119,17 @@ function Register() {
             navigate("/login");
           }, 2000);
         } else {
-          setMessage("Registration failed");
+          const serverMsg = res?.data?.message || "Registration failed. Please try again.";
+          setMessage(serverMsg);
           setIsSuccess(false);
         }
 
-      } catch {
-        setMessage("Server error");
+      } catch (err) {
+        const serverMsg =
+          err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Server error. Please try again.";
+        setMessage(serverMsg);
         setIsSuccess(false);
       }
     }
@@ -160,11 +214,13 @@ function Register() {
               name="name"
               value={formData.name}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Your full name"
-              autoComplete="off"
-              className="w-full mt-2 p-3 rounded-md bg-transparent border border-[#D4AF37] outline-none"
+              className={`w-full mt-2 p-3 rounded-md bg-transparent border outline-none ${
+                touched.name && errors.name ? "border-red-500" : "border-[#D4AF37]"
+              }`}
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+            {touched.name && errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
           </div>
 
           <div className="mb-5">
@@ -174,11 +230,13 @@ function Register() {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Email Address"
-              autoComplete="off"
-              className="w-full mt-2 p-3 rounded-md bg-transparent border border-[#D4AF37] outline-none"
+              className={`w-full mt-2 p-3 rounded-md bg-transparent border outline-none ${
+                touched.email && errors.email ? "border-red-500" : "border-[#D4AF37]"
+              }`}
             />
-            {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+            {touched.email && errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
           </div>
 
           <div className="mb-6">
@@ -188,11 +246,16 @@ function Register() {
               name="password"
               value={formData.password}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Enter password"
-              autoComplete="new-password"
-              className="w-full mt-2 p-3 rounded-md bg-transparent border border-[#D4AF37] outline-none"
+              className={`w-full mt-2 p-3 rounded-md bg-transparent border outline-none ${
+                touched.password && errors.password ? "border-red-500" : "border-[#D4AF37]"
+              }`}
             />
-            {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+            {touched.password && errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+            <p className="text-gray-500 text-xs mt-2">
+              Password must be 8+ characters with uppercase, lowercase, number, and symbol.
+            </p>
           </div>
 
           <button
@@ -203,9 +266,9 @@ function Register() {
           </button>
 
           <div className="flex items-center my-6">
-            <div className="flex-grow border-t border-[#D4AF37]"></div>
+            <div className="grow border-t border-[#D4AF37]"></div>
             <span className="mx-3 text-gray-400 text-sm">Or</span>
-            <div className="flex-grow border-t border-[#D4AF37]"></div>
+            <div className="grow border-t border-[#D4AF37]"></div>
           </div>
 
           <button

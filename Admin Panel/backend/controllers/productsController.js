@@ -31,7 +31,7 @@ exports.getProducts = async (req, res) => {
     res.status(200).json({
       products: products.map(p => ({
         ...p,
-        price: `Rs.${Number(String(p.price).replace(/[^0-9.]/g, '') || 0).toLocaleString()}`
+        price: `Rs ${Number(String(p.price).replace(/[^0-9.]/g, '') || 0).toLocaleString()}`
       })),
       stats: statsResult[0]
     });

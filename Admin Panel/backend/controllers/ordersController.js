@@ -8,6 +8,7 @@ exports.getOrders = async (req, res) => {
         COALESCE(c.name, CONCAT(o.first_name, ' ', o.last_name)) as customer_name
       FROM orders o
       LEFT JOIN customers c ON o.email = c.email
+      WHERE o.payment_status = 'Paid'
       ORDER BY o.created_at DESC
       LIMIT 50
     `);
@@ -19,6 +20,7 @@ exports.getOrders = async (req, res) => {
         SUM(CASE WHEN order_status = 'Shipped' THEN 1 ELSE 0 END) as shippedCount,
         SUM(CASE WHEN order_status = 'Delivered' THEN 1 ELSE 0 END) as deliveredCount
       FROM orders
+      WHERE payment_status = 'Paid'
     `);
 
     res.status(200).json({
@@ -32,7 +34,7 @@ exports.getOrders = async (req, res) => {
           customer_id: row.customer_id || 'GUEST',
           customer: row.customer_name || `${row.first_name || ''} ${row.last_name || ''}`.trim() || 'Guest',
           items_summary: itemsArr.map(i => i.name).join(', '),
-          total_formatted: `Rs.${Number(row.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          total_formatted: `Rs ${Number(row.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
           date_formatted: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           status: row.order_status || 'Pending'
         };

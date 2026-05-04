@@ -4,7 +4,13 @@ import { useModal } from '../context/ModalContext';
 import '../styles/StatusModal.css';
 
 export default function StatusModal() {
-  const { modalConfig, closeModal } = useModal();
+  const modal = useModal();
+  
+  if (!modal) return null;
+  
+  const { modalConfig, closeModal } = modal;
+  if (!modalConfig) return null;
+  
   const { isOpen, type, title, message, onConfirm, onCancel } = modalConfig;
 
   if (!isOpen) return null;

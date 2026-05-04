@@ -31,11 +31,13 @@ function Login() {
       const res = await axios.post("http://localhost:5000/login", formData);
       if (res.data.success) {
         localStorage.setItem("user", JSON.stringify(res.data.user || { email: formData.email }));
+        window.dispatchEvent(new Event("auth-changed"));
         setMessage("Login successful");
         setIsSuccess(true);
         setTimeout(() => {
           navigate("/home");
-        }, 1500);
+        }, 2000);
+
       } else {
         setMessage("Invalid email or password");
         setIsSuccess(false);
@@ -63,6 +65,9 @@ function Login() {
 
         // Store user in localStorage for persistence across sessions
         localStorage.setItem("user", JSON.stringify({ name: user.name, email: user.email }));
+        window.dispatchEvent(new Event("auth-changed"));
+
+        // Direct login (no password)
         setMessage(`Welcome ${user.name}! Login successful`);
         setIsSuccess(true);
         setTimeout(() => {

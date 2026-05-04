@@ -4,6 +4,7 @@ import { Lock } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import "../App.css"; // Reuse existing css for login
 import logo from "../assets/watchlogo.png";
+import { getApiBaseUrl } from "../utils/api";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -30,8 +31,8 @@ export default function Login() {
     setLoading(true);
 
     const endpoint = isSignUp 
-      ? "http://localhost:5001/api/admin/signup" 
-      : "http://localhost:5001/api/admin/login";
+      ? `${getApiBaseUrl()}/api/admin/signup` 
+      : `${getApiBaseUrl()}/api/admin/login`;
 
     const payload = isSignUp ? { name, email, password } : { email, password };
 
@@ -45,21 +46,23 @@ export default function Login() {
       
       if (res.ok) {
         localStorage.setItem("adminUser", JSON.stringify(data.admin));
-        setSuccessMsg(data.message || (isSignUp ? "Signup successful!" : "Login successful!"));
+        localStorage.setItem("adminToken", data.token);
+        window.dispatchEvent(new Event("auth-changed"));
+        setSuccessMsg(data.message || "Login successful!");
         setTimeout(() => {
           navigate("/dashboard");
         }, 500); // short delay to show success
       } else {
         setErrorMsg(data.error || "Authentication failed");
       }
-    } catch (err) {
+    } catch {
       setErrorMsg("Error connecting to server. Is the backend running?");
     } finally {
       setLoading(false);
     }
   };
 
-  const loginWithGoogle = useGoogleLogin({
+  const _loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
         const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -83,7 +86,7 @@ export default function Login() {
         } else {
            setErrorMsg(data.error || "Google Admin Login failed");
         }
-      } catch (err) {
+      } catch {
         setErrorMsg("Server error connecting to Admin Backend");
       }
     },
@@ -112,7 +115,43 @@ export default function Login() {
             <h2>{isSignUp ? "Create Admin Account" : "Admin Sign In"}</h2>
             <p className="subtitle">{isSignUp ? "Register a new administrator" : "Enter your credentials to continue"}</p>
 
-            {errorMsg && <div className="alert error-alert">{errorMsg}</div>}
+            {errorMsg && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                background: 'rgba(0,0,0,0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000
+              }} onClick={() => setErrorMsg('')}>
+                <div style={{
+                  background: '#171717',
+                  border: '1px solid #d4af37',
+                  borderRadius: '12px',
+                  padding: '30px',
+                  textAlign: 'center',
+                  color: '#fff',
+                  minWidth: '260px'
+                }} onClick={e => e.stopPropagation()}>
+                  <h3 style={{ margin: '0 0 10px', color: '#d4af37' }}>Invalid credentials</h3>
+                  <p style={{ margin: 0 }}>{errorMsg}</p>
+                  <button onClick={() => setErrorMsg('')} style={{
+                    marginTop: '15px',
+                    background: '#d4af37',
+                    color: '#000',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}>Close</button>
+                </div>
+              </div>
+            )}
+
             {successMsg && <div className="alert success-alert">{successMsg}</div>}
 
             {isSignUp && (
@@ -187,16 +226,8 @@ export default function Login() {
               <span></span>
             </div>
 
-            <button type="button" className="google-btn" onClick={() => loginWithGoogle()}>
-              <span className="google-icon-wrapper">
-                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="16px" height="16px">
-                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                   <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                   <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                   <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                 </svg>
-              </span>
-              <span>Sign in with Google</span>
+            <button type="button" className="google-btn" onClick={() => navigate("/create-account")}>
+              <span>Create New Admin Account</span>
             </button>
 
             <div className="note">
@@ -206,6 +237,13 @@ export default function Login() {
                 access attempts are logged and monitored for security purposes
               </p>
             </div>
+
+            <p className="subtitle" style={{ marginTop: "14px", textAlign: "center" }}>
+              Don't have an account?{" "}
+              <span style={{ color: "#d4af37", cursor: "pointer" }} onClick={() => navigate("/create-account")}>
+                Create one
+              </span>
+            </p>
           </form>
         </div>
       </div>

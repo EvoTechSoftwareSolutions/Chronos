@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Box, ShoppingBag, Users, Settings, LogOut } from 'lucide-react';
 import logo from '../assets/watchlogo.png';
@@ -6,24 +6,20 @@ import '../styles/Sidebar.css';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
-  const [adminUser, setAdminUser] = useState({ name: 'Admin', role: 'Administrator' });
+  const [storedUser, setStoredUser] = React.useState(JSON.parse(localStorage.getItem('adminUser') || '{}'));
 
-  useEffect(() => {
-    const userStr = localStorage.getItem('adminUser');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user && user.name) {
-          setAdminUser({ name: user.name, role: user.role || 'Administrator' });
-        }
-      } catch (e) {
-        console.error("Error parsing adminUser", e);
-      }
-    }
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      setStoredUser(JSON.parse(localStorage.getItem('adminUser') || '{}'));
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
+    window.dispatchEvent(new Event('auth-changed'));
     navigate('/');
   };
 
@@ -66,10 +62,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
       <div className="sidebar-footer">
         <div className="user-profile" onClick={() => { navigate('/profile'); setIsOpen(false); }} style={{ cursor: 'pointer' }}>
-          <div className="avatar">{getInitials(adminUser.name)}</div>
+          <div className="avatar">
+            {getInitials(storedUser.name) || 'AD'}
+          </div>
           <div className="user-info">
-            <h4>{adminUser.name}</h4>
-            <p>{adminUser.role}</p>
+            <h4>{storedUser.name || 'Admin'}</h4>
+            <p>{storedUser.role || 'Admin'}</p>
           </div>
         </div>
         <button className="logout-btn" onClick={handleLogout}>

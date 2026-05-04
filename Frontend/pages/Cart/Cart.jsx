@@ -94,15 +94,11 @@ function CartItemCard({ item, onRemove, onQtyChange }) {
           {item.name}
         </h3>
 
-        {/* Color + Size row */}
+        {/* Color row */}
         <div className="flex flex-col gap-0.5 mb-3">
           <p className="text-[10px] tracking-widest uppercase">
             <span className="text-gray-500">COLOR :</span>{' '}
             <span className="text-[#D4AF37] font-medium">{colorName.toUpperCase()}</span>
-          </p>
-          <p className="text-[10px] tracking-widest uppercase">
-            <span className="text-gray-500">STRAP SIZE :</span>{' '}
-            <span className="text-white font-medium">{item.size ?? 'M'}</span>
           </p>
         </div>
 
