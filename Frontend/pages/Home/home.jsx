@@ -10,12 +10,12 @@ import Footer from "../../components/Footer";
 
 function Home() {
   return (
-    <div className="bg-black text-white w-full min-h-screen relative overflow-x-hidden">
+    <div className="bg-black text-white w-full min-h-screen relative overflow-hidden">
       {/* Background Image Layer */}
       <img
         src={background}
         alt="Background"
-        className="absolute top-[800px] left-0 w-full h-full object-cover opacity-60 z-0 pointer-events-none"
+        className="absolute top-[800px] left-0 w-full bottom-0 object-cover opacity-60 z-0 pointer-events-none"
       />
 
       {/* Content Layer overlaying background */}
