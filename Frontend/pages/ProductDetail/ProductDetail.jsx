@@ -369,6 +369,26 @@ function ProductDetail() {
               </div>
             </div>
 
+            {/* Stock Status */}
+            <div className="flex items-center gap-3 mt-2">
+              {product.stock_quantity <= 0 ? (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-950/60 border border-red-700/50 text-red-400 text-xs font-bold uppercase tracking-widest">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  Out of Stock
+                </span>
+              ) : product.stock_quantity <= 5 ? (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-950/60 border border-amber-600/40 text-amber-400 text-xs font-bold uppercase tracking-widest">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  Only {product.stock_quantity} left in stock
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-950/60 border border-green-700/40 text-green-400 text-xs font-bold uppercase tracking-widest">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  {product.stock_quantity} in Stock
+                </span>
+              )}
+            </div>
+
             {/* CTA Buttons */}
             <div className="flex flex-col gap-6 mt-6">
               <button
@@ -387,10 +407,15 @@ function ProductDetail() {
               </button>
               
               <button
-                onClick={() => { handleAddToCart(); navigate('/cart'); }}
-                className="w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[13px] bg-transparent border border-[#D4AF37]/40 text-white hover:bg-[#D4AF37]/5 hover:border-[#D4AF37] transition-all duration-500 hover:-translate-y-1 active:scale-[0.98]"
+                onClick={() => { if (product.stock_quantity > 0) { handleAddToCart(); navigate('/cart'); } }}
+                disabled={product.stock_quantity <= 0}
+                className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[13px] transition-all duration-500 ${
+                  product.stock_quantity <= 0
+                    ? 'bg-[#1a1a1a] text-gray-600 cursor-not-allowed border border-white/5'
+                    : 'bg-transparent border border-[#D4AF37]/40 text-white hover:bg-[#D4AF37]/5 hover:border-[#D4AF37] hover:-translate-y-1 active:scale-[0.98]'
+                }`}
               >
-                Buy Now
+                {product.stock_quantity <= 0 ? 'Currently Unavailable' : 'Buy Now'}
               </button>
             </div>
 

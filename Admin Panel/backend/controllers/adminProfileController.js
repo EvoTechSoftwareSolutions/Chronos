@@ -3,7 +3,8 @@ const bcrypt = require('bcryptjs');
 
 exports.getProfile = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT id, name, email, first_name, last_name, role, department, phone, bio, created_at FROM admins LIMIT 1');
+    const adminId = req.auth?.adminId || 1;
+    const [rows] = await db.query('SELECT id, name, email, first_name, last_name, role, department, phone, bio, created_at FROM admins WHERE id = ?', [adminId]);
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Admin not found' });
     }
@@ -15,8 +16,7 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   const {
-    first_name,
-    last_name,
+    name,
     email,
     role,
     department,
@@ -25,18 +25,18 @@ exports.updateProfile = async (req, res) => {
   } = req.body;
   
   try {
+    const adminId = req.auth?.adminId || 1;
     await db.query(`
       UPDATE admins SET
-        first_name = ?,
-        last_name = ?,
+        name = ?,
         email = ?,
         role = ?,
         department = ?,
         phone = ?,
         bio = ?
-      WHERE id = 1
+      WHERE id = ?
     `, [
-      first_name, last_name, email, role, department, phone, bio
+      name, email, role, department, phone, bio, adminId
     ]);
     res.json({ message: 'Profile updated successfully' });
   } catch (error) {
@@ -48,8 +48,9 @@ exports.updateSecurity = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   try {
-    // 1. Get the current admin record (assume ID 1 for now or from session)
-    const [rows] = await db.query('SELECT * FROM admins LIMIT 1');
+    const adminId = req.auth?.adminId || 1;
+    // 1. Get the current admin record
+    const [rows] = await db.query('SELECT * FROM admins WHERE id = ?', [adminId]);
     if (rows.length === 0) return res.status(404).json({ error: 'Admin not found' });
     
     const admin = rows[0];

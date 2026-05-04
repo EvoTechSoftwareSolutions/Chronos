@@ -93,3 +93,26 @@ export function googleRegister(req, res) {
     return res.json({ success: true, account_id });
   });
 }
+
+// GET /api/user/profile
+export function getProfile(req, res) {
+  const { email } = req.query;
+  if (!email) return res.json({ success: false, message: "Email required" });
+  
+  db.query("SELECT name, email, phone, address, city, zip_code FROM users WHERE email = ?", [email], (err, result) => {
+    if (err || result.length === 0) return res.json({ success: false, message: "User not found" });
+    return res.json({ success: true, user: result[0] });
+  });
+}
+
+// PUT /api/user/profile
+export function updateProfile(req, res) {
+  const { email, name, phone, address, city, zip_code } = req.body;
+  if (!email) return res.json({ success: false, message: "Email required" });
+
+  const sql = "UPDATE users SET name = ?, phone = ?, address = ?, city = ?, zip_code = ? WHERE email = ?";
+  db.query(sql, [name, phone, address, city, zip_code, email], (err) => {
+    if (err) return res.json({ success: false, message: "Failed to update profile" });
+    return res.json({ success: true, message: "Profile updated successfully" });
+  });
+}

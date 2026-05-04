@@ -50,7 +50,7 @@ export function getDashboard(req, res) {
     products: { value: 0 },
   };
 
-  db.query("SELECT SUM(total) as revenue, COUNT(*) as count FROM orders", (err, result) => {
+  db.query("SELECT SUM(total) as revenue, COUNT(*) as count FROM orders WHERE payment_status = 'Paid'", (err, result) => {
     if (!err && result[0]) {
       stats.revenue.value = "$" + (result[0].revenue || 0).toLocaleString();
       stats.orders.value = result[0].count;
@@ -62,7 +62,7 @@ export function getDashboard(req, res) {
       db.query("SELECT COUNT(*) as count FROM products", (err, result) => {
         if (!err && result[0]) stats.products.value = result[0].count;
 
-        db.query("SELECT * FROM orders ORDER BY id DESC", (err, allOrders) => {
+        db.query("SELECT * FROM orders WHERE payment_status = 'Paid' ORDER BY id DESC", (err, allOrders) => {
           const orders = allOrders || [];
           const recentOrders = orders.slice(0, 5).map((o) => {
             let parsedItems = [];
@@ -95,7 +95,7 @@ export function getDashboard(req, res) {
             .slice(0, 5);
 
           db.query(
-            "SELECT DATE_FORMAT(created_at, '%b') as month, SUM(total) as value FROM orders GROUP BY YEAR(created_at), MONTH(created_at) ORDER BY created_at ASC LIMIT 6",
+            "SELECT DATE_FORMAT(created_at, '%b') as month, SUM(total) as value FROM orders WHERE payment_status = 'Paid' GROUP BY YEAR(created_at), MONTH(created_at) ORDER BY created_at ASC LIMIT 6",
             (err, trends) => {
               const data = {
                 stats,
@@ -205,7 +205,7 @@ export function deleteAdminProduct(req, res) {
 
 // GET /api/admin/orders
 export function getAdminOrders(req, res) {
-  db.query("SELECT * FROM orders ORDER BY id DESC", (err, orders) => {
+  db.query("SELECT * FROM orders WHERE payment_status = 'Paid' ORDER BY id DESC", (err, orders) => {
     if (err) return res.status(500).json({ error: err.message });
 
     let pending = 0;

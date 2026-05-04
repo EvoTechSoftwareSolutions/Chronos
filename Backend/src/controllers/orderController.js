@@ -55,11 +55,6 @@ export function checkout(req, res) {
       return res.json({ success: false, message: "Error saving order" });
     }
 
-    // Trigger New Order Notification
-    const newOrderId = result.insertId;
-    const orderNotifText = `New order received: #ORD-${String(newOrderId).padStart(4, "0")} from ${firstName || "Guest"} ${lastName || ""}`;
-    db.query("INSERT INTO notifications (text, type) VALUES (?, 'order')", [orderNotifText]);
-
     // Deduct Stock and Trigger Notifications
     try {
       const parsedItems = JSON.parse(JSON.stringify(items));
@@ -81,42 +76,6 @@ export function checkout(req, res) {
       });
     } catch (e) {
       console.error("Stock deduction trigger error:", e);
-    }
-
-    // Automatically map into CRM if a user is logged in
-    if (userEmail) {
-      db.query("SELECT * FROM customers WHERE email = ?", [userEmail], (existsErr, rows) => {
-        const fullName = firstName && lastName ? `${firstName} ${lastName}` : "Unknown User";
-        const initials = (firstName ? firstName[0].toUpperCase() : "") + (lastName ? lastName[0].toUpperCase() : "");
-
-        if (!existsErr && rows.length === 0) {
-          const customer_id = "CUST-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-          const insertSql = `
-            INSERT INTO customers (customer_id, initials, name, email, orders_count, total_spent, join_date, status)
-            VALUES (?, ?, ?, ?, 1, ?, CURDATE(), 'Active')
-          `;
-          db.query(insertSql, [customer_id, initials, fullName, userEmail, total], (ierr) => {
-            if (!ierr) {
-              const notifText = `New customer registration: ${fullName} (${customer_id})`;
-              db.query("INSERT INTO notifications (text, type) VALUES (?, 'customer')", [notifText]);
-              console.log("New customer added from checkout:", customer_id);
-            }
-          });
-        } else {
-          const existing = rows[0];
-          const isRegistered = existing.customer_id?.startsWith("ACC-");
-          const updateSql = `
-            UPDATE customers 
-            SET orders_count = orders_count + 1, 
-                total_spent = total_spent + ?,
-                status = 'Active'
-                ${!isRegistered ? ", name = ?" : ""}
-            WHERE email = ?
-          `;
-          const params = !isRegistered ? [total, fullName, userEmail] : [total, userEmail];
-          db.query(updateSql, params);
-        }
-      });
     }
 
     return res.json({ success: true, message: "Order placed successfully!", orderId: result.insertId });
@@ -185,13 +144,74 @@ export function payhereNotify(req, res) {
     else if (status_code == -2) payment_status = "Failed";
     else if (status_code == -3) payment_status = "Chargedback";
 
-    const sql = "UPDATE orders SET payment_status = ? WHERE id = ?";
-    db.query(sql, [payment_status, order_id], (err, result) => {
-      if (err) {
-        console.log("Error updating payment status in DB", err);
-      } else {
-        console.log("Payment status updated to", payment_status, "for order_id", order_id);
+    db.query("SELECT * FROM orders WHERE id = ?", [order_id], (selErr, orderRows) => {
+      if (selErr || orderRows.length === 0) {
+        console.log("Order not found or error fetching order in payhereNotify", selErr);
+        return;
       }
+      const order = orderRows[0];
+      const previousStatus = order.payment_status;
+
+      const sql = "UPDATE orders SET payment_status = ? WHERE id = ?";
+      db.query(sql, [payment_status, order_id], (err, result) => {
+        if (err) {
+          console.log("Error updating payment status in DB", err);
+        } else {
+          console.log("Payment status updated to", payment_status, "for order_id", order_id);
+
+          // Only trigger side-effects if status changed to 'Paid' and it wasn't already 'Paid'
+          if (payment_status === "Paid" && previousStatus !== "Paid") {
+            const firstName = order.first_name;
+            const lastName = order.last_name;
+            const userEmail = order.email;
+            const total = order.total;
+            let items = [];
+            try {
+              items = JSON.parse(order.items);
+            } catch (e) {}
+
+            // Trigger New Order Notification
+            const orderNotifText = `New order received: #ORD-${String(order_id).padStart(4, "0")} from ${firstName || "Guest"} ${lastName || ""}`;
+            db.query("INSERT INTO notifications (text, type) VALUES (?, 'order')", [orderNotifText]);
+
+            // Automatic CRM update remains here...
+            if (userEmail) {
+              db.query("SELECT * FROM customers WHERE email = ?", [userEmail], (existsErr, rows) => {
+                const fullName = firstName && lastName ? `${firstName} ${lastName}` : "Unknown User";
+                const initials = (firstName ? firstName[0].toUpperCase() : "") + (lastName ? lastName[0].toUpperCase() : "");
+
+                if (!existsErr && rows.length === 0) {
+                  const customer_id = "CUST-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+                  const insertSql = `
+                    INSERT INTO customers (customer_id, initials, name, email, orders_count, total_spent, join_date, status)
+                    VALUES (?, ?, ?, ?, 1, ?, CURDATE(), 'Active')
+                  `;
+                  db.query(insertSql, [customer_id, initials, fullName, userEmail, total], (ierr) => {
+                    if (!ierr) {
+                      const notifText = `New customer registration: ${fullName} (${customer_id})`;
+                      db.query("INSERT INTO notifications (text, type) VALUES (?, 'customer')", [notifText]);
+                      console.log("New customer added from webhook:", customer_id);
+                    }
+                  });
+                } else {
+                  const existing = rows[0];
+                  const isRegistered = existing.customer_id?.startsWith("ACC-");
+                  const updateSql = `
+                    UPDATE customers 
+                    SET orders_count = orders_count + 1, 
+                        total_spent = total_spent + ?,
+                        status = 'Active'
+                        ${!isRegistered ? ", name = ?" : ""}
+                    WHERE email = ?
+                  `;
+                  const params = !isRegistered ? [total, fullName, userEmail] : [total, userEmail];
+                  db.query(updateSql, params);
+                }
+              });
+            }
+          }
+        }
+      });
     });
   } else {
     console.log("Invalid MD5 signature");

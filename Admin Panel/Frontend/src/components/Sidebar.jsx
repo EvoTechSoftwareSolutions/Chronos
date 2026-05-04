@@ -6,6 +6,15 @@ import '../styles/Sidebar.css';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
+  const [storedUser, setStoredUser] = React.useState(JSON.parse(localStorage.getItem('adminUser') || '{}'));
+
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      setStoredUser(JSON.parse(localStorage.getItem('adminUser') || '{}'));
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
@@ -44,10 +53,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
       <div className="sidebar-footer">
         <div className="user-profile" onClick={() => { navigate('/profile'); setIsOpen(false); }} style={{ cursor: 'pointer' }}>
-          <div className="avatar">KS</div>
+          <div className="avatar">
+            {storedUser.name ? storedUser.name.substring(0, 2).toUpperCase() : 'AD'}
+          </div>
           <div className="user-info">
-            <h4>Kasun Silva</h4>
-            <p>CEO</p>
+            <h4>{storedUser.name || 'Admin'}</h4>
+            <p>{storedUser.role || 'Admin'}</p>
           </div>
         </div>
         <button className="logout-btn" onClick={handleLogout}>

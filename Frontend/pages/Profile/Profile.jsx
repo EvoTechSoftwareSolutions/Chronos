@@ -360,7 +360,11 @@ export default function Profile() {
       <Navbar />
       {currentView === 'main' && renderMain()}
       {currentView === 'orders' && renderOrders()}
-      {currentView === 'settings' && <SettingsView onBack={() => setCurrentView('main')} />}
+      {currentView === 'settings' && (
+        <div className="main-content">
+          <SettingsView user={user} setUser={setUser} onBack={() => setCurrentView('main')} />
+        </div>
+      )}
       {toastStatus.show && (
         <div className="success-toast-overlay">
           <div className={`luxury-success-toast ${toastStatus.hiding ? 'hiding' : ''}`}>

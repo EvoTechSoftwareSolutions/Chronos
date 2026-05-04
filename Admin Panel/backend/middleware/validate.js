@@ -112,9 +112,9 @@ function validateSecurityUpdate(req, res, next) {
 }
 
 function validateAdminProfile(req, res, next) {
-  const { first_name, last_name, email } = req.body || {};
-  if (!first_name || !last_name) {
-    return res.status(400).json({ error: "First and last name are required" });
+  const { name, email } = req.body || {};
+  if (!name) {
+    return res.status(400).json({ error: "Name is required" });
   }
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: "Valid email is required" });

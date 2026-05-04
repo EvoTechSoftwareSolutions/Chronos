@@ -75,6 +75,18 @@ export function initializeSchema(db) {
           if (!cols.includes("account_id")) {
             db.query("ALTER TABLE users ADD COLUMN account_id VARCHAR(50) UNIQUE AFTER id");
           }
+          if (!cols.includes("phone")) {
+            db.query("ALTER TABLE users ADD COLUMN phone VARCHAR(50)");
+          }
+          if (!cols.includes("address")) {
+            db.query("ALTER TABLE users ADD COLUMN address TEXT");
+          }
+          if (!cols.includes("city")) {
+            db.query("ALTER TABLE users ADD COLUMN city VARCHAR(100)");
+          }
+          if (!cols.includes("zip_code")) {
+            db.query("ALTER TABLE users ADD COLUMN zip_code VARCHAR(20)");
+          }
         }
       });
     }

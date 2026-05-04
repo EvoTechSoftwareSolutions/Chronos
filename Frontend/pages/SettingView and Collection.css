@@ -734,6 +734,7 @@
   z-index: 1;
   animation: fadeIn 0.5s ease;
   margin-bottom: 4rem;
+  margin-top: 4rem;
 }
 
 .settings-tabs-wrapper {
@@ -873,6 +874,13 @@
   margin-bottom: 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .form-group-row {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
 .form-group {
   flex: 1;
   display: flex;
@@ -913,8 +921,8 @@
 }
 
 .settings-save-btn {
-  background: linear-gradient(135deg, #e5c05c, var(--gold-dark));
-  color: #000;
+  background: var(--gold);
+  color: var(--text-dark);
   padding: 1rem 2.5rem;
   border-radius: 8px;
   font-weight: 600;
@@ -923,14 +931,162 @@
 }
 
 .settings-save-btn:hover {
+  
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 15px rgba(217, 214, 35, 0.4);
 }
 
 .settings-empty-state {
   text-align: center;
   color: var(--text-muted);
   padding: 4rem 0;
+}
+
+.settings-subtext {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+.settings-toggle-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.settings-toggle-group.border-gold {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.settings-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-toggle-text label {
+  color: #fff;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.settings-toggle-text span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.settings-toggle-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--gold);
+}
+
+.settings-toggle-checkbox.small {
+  width: 16px;
+  height: 16px;
+}
+
+.settings-outline-btn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.settings-outline-btn:hover {
+  background: var(--gold);
+  color: #000;
+}
+
+.settings-payment-card {
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payment-card-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.payment-card-icon {
+  width: 48px;
+  height: 32px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #ccc;
+}
+
+.payment-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.payment-card-name {
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.payment-card-expiry {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.payment-card-remove {
+  color: #ff4d4d;
+  font-size: 0.9rem;
+  transition: opacity 0.3s;
+}
+
+.payment-card-remove:hover {
+  opacity: 0.8;
+}
+
+.settings-add-btn {
+  width: 100%;
+  padding: 1rem;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: transparent;
+  transition: all 0.3s;
+  margin-bottom: 2rem;
+}
+
+.settings-add-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.settings-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-checkbox-group label {
+  color: #ccc;
+  font-size: 0.95rem;
 }
 
 /* COLLECTION PAGE – LUXURY REDESIGN*/

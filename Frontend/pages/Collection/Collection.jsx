@@ -201,12 +201,43 @@ export default function Collection() {
                   <div
                     key={item.id}
                     className="coll-card"
-                    onClick={() => navigate(`/product/${item.category?.toLowerCase()}/${item.id}`, { state: { product: item } })}
+                    style={{ cursor: item.stock_quantity <= 0 ? 'not-allowed' : 'pointer', opacity: item.stock_quantity <= 0 ? 0.8 : 1 }}
+                    onClick={() => {
+                      if (item.stock_quantity > 0) {
+                        navigate(`/product/${item.category?.toLowerCase()}/${item.id}`, { state: { product: item } });
+                      }
+                    }}
                   >
-                    <div className="coll-card-img-wrap">
+                    <div className="coll-card-img-wrap" style={{ position: 'relative' }}>
                       <div className="coll-card-glow" />
                       {item.img && (
-                        <img src={item.img} alt={item.name} className="coll-card-img" />
+                        <img src={item.img} alt={item.name} className="coll-card-img" style={{ opacity: item.stock_quantity <= 0 ? 0.45 : 1 }} />
+                      )}
+                      {item.stock_quantity <= 0 && (
+                        <div style={{
+                          position: 'absolute', inset: 0, display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', zIndex: 2
+                        }}>
+                          <span style={{
+                            background: 'rgba(0,0,0,0.75)',
+                            border: '1px solid rgba(255,77,77,0.6)',
+                            color: '#ff6b6b', padding: '6px 18px',
+                            borderRadius: '20px', fontSize: '0.7rem',
+                            fontWeight: 700, letterSpacing: '0.15em',
+                            textTransform: 'uppercase'
+                          }}>Sold Out</span>
+                        </div>
+                      )}
+                      {item.stock_quantity > 0 && item.stock_quantity <= 5 && (
+                        <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
+                          <span style={{
+                            background: 'rgba(180,120,0,0.85)',
+                            color: '#fff', padding: '4px 10px',
+                            borderRadius: '12px', fontSize: '0.65rem',
+                            fontWeight: 700, letterSpacing: '0.1em',
+                            textTransform: 'uppercase'
+                          }}>Only {item.stock_quantity} left</span>
+                        </div>
                       )}
                     </div>
                     <div className="coll-card-info">
