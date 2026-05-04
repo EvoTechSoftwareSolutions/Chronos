@@ -41,6 +41,9 @@ function PaymentDetails() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const [savedCards, setSavedCards] = useState([]);
+  const [selectedSavedCard, setSelectedSavedCard] = useState(null);
 
   const subtotal = cartItems.reduce((s, i) => {
     const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
@@ -76,6 +79,17 @@ function PaymentDetails() {
         setRelatedProducts(filtered);
       })
       .catch(console.error);
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.email) {
+      axios.get(`http://localhost:5000/api/user/payment-methods?email=${user.email}`)
+        .then(res => {
+          if (res.data.success) {
+            setSavedCards(res.data.paymentMethods);
+          }
+        })
+        .catch(console.error);
+    }
   }, []);
 
   const sendOrderMails = (orderId) => {
@@ -186,7 +200,7 @@ function PaymentDetails() {
       if (res.data.success) {
         const orderId = res.data.orderId;
 
-        if (paymentMethod === 'Credit/Debit') {
+        if (paymentMethod === 'Credit/Debit' && !selectedSavedCard) {
           // Fetch PayHere Hash
           const hashRes = await axios.post('http://localhost:5000/generate-payhere-hash', {
             order_id: orderId,
@@ -243,10 +257,16 @@ function PaymentDetails() {
           window.payhere.startPayment(payment);
 
         } else {
-          sendOrderMails(orderId);
+          // Mock successful payment for Saved Cards, Apple Pay, PayPal
+          await axios.post('http://localhost:5000/api/orders/update-payment-status', {
+             orderId: orderId,
+             status: 'Paid'
+          }).catch(console.error);
+
+          sendOrderEmail(orderId, shippingDetails?.firstName || 'Customer', total, itemsListText);
           clearCart();
-          setSuccessMsg("Order placed successfully! Order ID: " + orderId);
           setLoading(false);
+          navigate(`/checkout/success/${orderId}`);
         }
       } else {
         setError(res.data.message || "Order placement failed.");
@@ -349,18 +369,52 @@ function PaymentDetails() {
                 ))}
               </div>
 
+              {savedCards.length > 0 && paymentMethod === 'Credit/Debit' && (
+                <div className="mb-8">
+                  <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-4">Saved Cards</h3>
+                  <div className="flex flex-col gap-3">
+                    {savedCards.map(card => (
+                      <label key={card.id} className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${selectedSavedCard === card.id ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-[#1a1a1a] border-[#2a2a2a] hover:border-[#D4AF37]/50'}`}>
+                        <input type="radio" name="savedCard" className="accent-[#D4AF37]" checked={selectedSavedCard === card.id} onChange={() => setSelectedSavedCard(card.id)} />
+                        <div className="flex-1">
+                          <p className="text-white font-medium text-sm">•••• •••• •••• {card.card_last_four}</p>
+                          <p className="text-gray-500 text-xs mt-1">Expires {card.expiry}</p>
+                        </div>
+                        <div className="text-[#D4AF37] font-bold text-xs uppercase">{card.card_type}</div>
+                      </label>
+                    ))}
+                    <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${!selectedSavedCard ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-[#1a1a1a] border-[#2a2a2a] hover:border-[#D4AF37]/50'}`}>
+                      <input type="radio" name="savedCard" className="accent-[#D4AF37]" checked={!selectedSavedCard} onChange={() => setSelectedSavedCard(null)} />
+                      <span className="text-white text-sm font-medium">Use a new card</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {/* Secure Payment Summary */}
               <div className="flex flex-col gap-6 mt-4">
                 <div className="flex flex-col items-center justify-center py-16 px-6 text-center border border-[#2a2a2a] rounded-xl bg-[#151515] relative overflow-hidden group">
                   {/* Subtle Background Glow */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#D4AF37]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
-                  {paymentMethod === 'Credit/Debit' ? (
+                  {paymentMethod === 'Credit/Debit' && !selectedSavedCard ? (
                     <>
                       <img src={creditLogo} alt="Credit Card" className="h-10 mb-6 opacity-80 mix-blend-lighten drop-shadow-[0_0_15px_rgba(212,175,55,0.2)]" />
                       <h3 className="text-[#D4AF37] font-playfair tracking-widest uppercase mb-3 text-lg">Secure Gateway</h3>
                       <p className="text-gray-400 text-xs tracking-wider leading-relaxed max-w-[280px]">
                         You will be securely redirected to PayHere's encrypted portal to complete your transaction without storing any card details on our servers.
+                      </p>
+                    </>
+                  ) : paymentMethod === 'Credit/Debit' && selectedSavedCard ? (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mb-6 border border-[#D4AF37]/30 text-[#D4AF37]">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-[#D4AF37] font-playfair tracking-widest uppercase mb-3 text-lg">Saved Card Processing</h3>
+                      <p className="text-gray-400 text-xs tracking-wider leading-relaxed max-w-[280px]">
+                        Your payment will be processed instantly using your selected saved card.
                       </p>
                     </>
                   ) : paymentMethod === 'Apple pay' ? (

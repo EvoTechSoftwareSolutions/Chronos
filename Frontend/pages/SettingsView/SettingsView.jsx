@@ -19,6 +19,18 @@ export default function SettingsView({ user, setUser, onBack }) {
   });
   const [loading, setLoading] = useState(true);
 
+  // Security State
+  const [passwords, setPasswords] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Billing State
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [showAddCard, setShowAddCard] = useState(false);
+  const [newCard, setNewCard] = useState({ cardNumber: '', expiry: '', cvv: '' });
+
   React.useEffect(() => {
     if (user?.email) {
       axios.get(`http://localhost:5000/api/user/profile?email=${user.email}`)
@@ -35,8 +47,20 @@ export default function SettingsView({ user, setUser, onBack }) {
           console.error(err);
           setLoading(false);
         });
+
+      fetchPaymentMethods();
     }
   }, [user]);
+
+  const fetchPaymentMethods = () => {
+    axios.get(`http://localhost:5000/api/user/payment-methods?email=${user?.email}`)
+      .then(res => {
+        if (res.data.success) {
+          setPaymentMethods(res.data.paymentMethods);
+        }
+      })
+      .catch(console.error);
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -59,10 +83,77 @@ export default function SettingsView({ user, setUser, onBack }) {
           setUser(updatedUser);
           localStorage.setItem('user', JSON.stringify(updatedUser));
         } else {
-          alert('Failed to update profile.');
+          showToast('Error', 'Failed to update profile.');
         }
       })
       .catch(err => console.error(err));
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswords({ ...passwords, [e.target.name]: e.target.value });
+  };
+
+  const handleUpdatePassword = (e) => {
+    e.preventDefault();
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      showToast('Error', 'New passwords do not match.');
+      return;
+    }
+    if (passwords.newPassword.length < 6) {
+      showToast('Error', 'Password must be at least 6 characters.');
+      return;
+    }
+
+    axios.put('http://localhost:5000/api/user/password', {
+      email: user.email,
+      currentPassword: passwords.currentPassword,
+      newPassword: passwords.newPassword
+    })
+    .then(res => {
+      if (res.data.success) {
+        showToast('Password Updated', 'Your security settings have been saved.');
+        setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        showToast('Update Failed', res.data.message || 'Incorrect current password.');
+      }
+    })
+    .catch(err => {
+      showToast('Error', err.response?.data?.message || 'Failed to update password.');
+    });
+  };
+
+  const handleAddPaymentMethod = (e) => {
+    e.preventDefault();
+    if (newCard.cardNumber.length < 15 || newCard.expiry.length < 5 || newCard.cvv.length < 3) {
+      showToast('Error', 'Please enter valid card details including CVV.');
+      return;
+    }
+
+    axios.post('http://localhost:5000/api/user/payment-methods', {
+      email: user.email,
+      cardNumber: newCard.cardNumber,
+      expiry: newCard.expiry
+    })
+    .then(res => {
+      if (res.data.success) {
+        showToast('Success', 'Payment method added.');
+        setNewCard({ cardNumber: '', expiry: '', cvv: '' });
+        setShowAddCard(false);
+        fetchPaymentMethods();
+      }
+    })
+    .catch(console.error);
+  };
+
+  const handleRemovePaymentMethod = (id) => {
+    axios.delete(`http://localhost:5000/api/user/payment-methods/${id}?email=${user.email}`)
+      .then(res => {
+        if (res.data.success) {
+          showToast('Success', 'Payment method removed.');
+          fetchPaymentMethods();
+        }
+      })
+      .catch(console.error);
   };
 
   const tabs = [
@@ -190,23 +281,44 @@ export default function SettingsView({ user, setUser, onBack }) {
         )}
 
         {activeTab === 'Security' && (
-          <div className="settings-form">
+          <form className="settings-form" onSubmit={handleUpdatePassword}>
             <h4 className="settings-section-title">Security Settings</h4>
             <p className="settings-subtext mb-6">Update your password and secure your account.</p>
 
             <div className="form-group mb-4">
               <label>Current Password</label>
-              <input type="password" placeholder="••••••••" />
+              <input 
+                type="password" 
+                name="currentPassword" 
+                value={passwords.currentPassword} 
+                onChange={handlePasswordChange} 
+                placeholder="••••••••" 
+                required 
+              />
             </div>
             
             <div className="form-group-row">
               <div className="form-group">
                 <label>New Password</label>
-                <input type="password" placeholder="••••••••" />
+                <input 
+                  type="password" 
+                  name="newPassword" 
+                  value={passwords.newPassword} 
+                  onChange={handlePasswordChange} 
+                  placeholder="••••••••" 
+                  required 
+                />
               </div>
               <div className="form-group">
                 <label>Confirm New Password</label>
-                <input type="password" placeholder="••••••••" />
+                <input 
+                  type="password" 
+                  name="confirmPassword" 
+                  value={passwords.confirmPassword} 
+                  onChange={handlePasswordChange} 
+                  placeholder="••••••••" 
+                  required 
+                />
               </div>
             </div>
 
@@ -217,13 +329,13 @@ export default function SettingsView({ user, setUser, onBack }) {
                 <label className="gold-text">Two-Factor Authentication</label>
                 <span>Add an extra layer of security to your account.</span>
               </div>
-              <button className="settings-outline-btn">Enable</button>
+              <button type="button" className="settings-outline-btn">Enable</button>
             </div>
 
             <div className="settings-actions">
-              <button className="settings-save-btn" onClick={() => showToast('Password Updated', 'Your security settings have been saved.')}>Update Password</button>
+              <button type="submit" className="settings-save-btn">Update Password</button>
             </div>
-          </div>
+          </form>
         )}
 
         {activeTab === 'Billing' && (
@@ -231,20 +343,62 @@ export default function SettingsView({ user, setUser, onBack }) {
             <h4 className="settings-section-title">Payment Methods</h4>
             <p className="settings-subtext mb-6">Manage your saved credit cards and billing addresses.</p>
 
-            <div className="settings-payment-card">
-              <div className="payment-card-info">
-                <div className="payment-card-icon">VISA</div>
-                <div className="payment-card-details">
-                  <p className="payment-card-name">Visa ending in 4242</p>
-                  <p className="payment-card-expiry">Expires 12/28</p>
+            {paymentMethods.length === 0 ? (
+              <p className="text-gray-400 text-sm mb-4">No payment methods saved.</p>
+            ) : (
+              paymentMethods.map(method => (
+                <div key={method.id} className="settings-payment-card mb-4 flex justify-between items-center bg-[#1a1a1a] p-4 rounded-xl border border-white/5">
+                  <div className="payment-card-info flex items-center gap-4">
+                    <div className="payment-card-icon font-bold text-[#D4AF37] uppercase">{method.card_type}</div>
+                    <div className="payment-card-details">
+                      <p className="payment-card-name text-white font-medium">•••• •••• •••• {method.card_last_four}</p>
+                      <p className="payment-card-expiry text-xs text-gray-500">Expires {method.expiry}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => handleRemovePaymentMethod(method.id)} className="payment-card-remove text-red-400 hover:text-red-300 transition-colors text-sm">Remove</button>
+                </div>
+              ))
+            )}
+
+            {!showAddCard ? (
+              <button className="settings-add-btn mt-2" onClick={() => setShowAddCard(true)}>
+                + Add New Payment Method
+              </button>
+            ) : (
+              <div className="mt-4 p-4 border border-[#D4AF37]/30 rounded-xl bg-black/20">
+                <h5 className="text-[#D4AF37] mb-3 text-sm">Add New Card</h5>
+                <div className="form-group mb-3">
+                  <label>Card Number</label>
+                  <input type="text" placeholder="0000 0000 0000 0000" value={newCard.cardNumber} onChange={(e) => setNewCard({...newCard, cardNumber: e.target.value})} maxLength={19} />
+                </div>
+                <div className="form-group-row mb-4">
+                  <div className="form-group flex-1">
+                    <label>Expiry Date (MM/YY)</label>
+                    <input type="text" placeholder="MM/YY" value={newCard.expiry} onChange={(e) => setNewCard({...newCard, expiry: e.target.value})} maxLength={5} />
+                  </div>
+                  <div className="form-group flex-1">
+                    <label>CVV <span className="text-gray-500 text-[10px] lowercase tracking-normal ml-1">(Not stored)</span></label>
+                    <input type="password" placeholder="•••" value={newCard.cvv} onChange={(e) => setNewCard({...newCard, cvv: e.target.value})} maxLength={4} />
+                  </div>
+                </div>
+                <div className="flex gap-4 mt-6">
+                  <button 
+                    className="flex-1 py-3 bg-[#D4AF37] text-black font-bold uppercase tracking-widest text-[10px] md:text-xs rounded-xl hover:bg-[#c9a430] hover:scale-[1.02] transition-all duration-300 shadow-[0_4px_15px_rgba(212,175,55,0.2)]" 
+                    onClick={handleAddPaymentMethod}
+                  >
+                    Save Card
+                  </button>
+                  <button 
+                    className="flex-1 py-3 bg-transparent border border-[#D4AF37]/50 text-[#D4AF37] font-bold uppercase tracking-widest text-[10px] md:text-xs rounded-xl hover:bg-[#D4AF37]/10 hover:border-[#D4AF37] transition-all duration-300" 
+                    onClick={() => setShowAddCard(false)}
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
-              <button className="payment-card-remove">Remove</button>
-            </div>
+            )}
 
-            <button className="settings-add-btn">
-              + Add New Payment Method
-            </button>
+            <div className="settings-divider my-8"></div>
 
             <h4 className="settings-section-title">Billing Address</h4>
             <div className="settings-checkbox-group">
@@ -252,8 +406,8 @@ export default function SettingsView({ user, setUser, onBack }) {
               <label htmlFor="sameShipping">Same as Shipping Address</label>
             </div>
             
-            <div className="settings-actions">
-              <button className="settings-save-btn" onClick={() => showToast('Billing Updated', 'Your payment methods have been saved.')}>Save Billing Info</button>
+            <div className="settings-actions mt-6">
+              <button className="settings-save-btn" onClick={() => showToast('Billing Updated', 'Your billing address preferences have been saved.')}>Save Billing Info</button>
             </div>
           </div>
         )}

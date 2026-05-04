@@ -71,6 +71,7 @@ function RedirectIfLoggedIn({ children }) {
 function App() {
   return (
     <PopupProvider>
+      <PopupModal />
       <CartProvider>
       <GoogleOAuthProvider clientId="90872154996-uovdvfs99noj5vm4iukv93lomlahks4f.apps.googleusercontent.com">
         <Router>

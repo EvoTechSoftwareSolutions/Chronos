@@ -30,7 +30,7 @@ const DESCRIPTIONS = {
 };
 
 const TAGS        = ['Order Free', 'Free Delivery', 'Last Price'];
-const COLORS_HEX  = ['#D4AF37', '#F5F5F5', '#1A1A1A', '#1E88E5', '#FFFFFF'];
+
 
 
 
@@ -129,7 +129,6 @@ function ProductDetail() {
     }
   }, [product]);
 
-  const [activeColor, setActiveColor] = useState(COLORS_HEX[0]);
   const [qty,         setQty]         = useState(1);
   const [showTop,     setShowTop]     = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -162,7 +161,6 @@ function ProductDetail() {
                   : parseFloat(String(product.price ?? '0').replace(/[^0-9.]/g, '')) || 0,
       image:    images[0],
       tags:     product.tags || [],
-      color:    activeColor,
       quantity: qty,
     });
     setAddedToCart(true);
@@ -326,30 +324,6 @@ function ProductDetail() {
             {/* Selectors Group */}
             <div className="flex flex-col gap-10">
               
-              {/* Color Selector */}
-              <div className="flex items-center gap-8">
-                 <p className="text-white text-sm font-bold tracking-widest min-w-[100px]">Color :</p>
-                 <div className="flex gap-4">
-                    {COLORS_HEX.map(hex => (
-                      <button
-                        key={hex}
-                        onClick={() => setActiveColor(hex)}
-                        style={{ backgroundColor: hex }}
-                        className={`group relative w-10 h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
-                          activeColor === hex
-                            ? 'border-[#D4AF37] scale-110 shadow-[0_0_15px_rgba(212,175,55,0.4)]'
-                            : 'border-white/10 hover:border-white/30'
-                        }`}
-                      >
-                         {activeColor === hex && (
-                            <div className="absolute inset-0 rounded-full border border-[#D4AF37] scale-125 opacity-40 animate-pulse" />
-                         )}
-                      </button>
-                    ))}
-                 </div>
-              </div>
-
-
               {/* Quantity */}
               <div className="flex items-center gap-8">
                 <p className="text-white text-sm font-bold tracking-widest min-w-[100px]">Quantity :</p>

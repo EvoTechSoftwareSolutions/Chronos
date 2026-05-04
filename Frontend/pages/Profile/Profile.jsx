@@ -30,8 +30,27 @@ export default function Profile() {
       setLoading(false);
       return;
     }
-    fetchUserOrders();
+    // Sync profile from backend on mount
+    axios.get(`http://localhost:5000/api/user/profile?email=${user.email}`)
+      .then(res => {
+        if (res.data.success) {
+          const updatedUser = { ...user, ...res.data.user };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+        fetchUserOrders();
+      })
+      .catch(err => {
+        console.error("Profile sync error:", err);
+        fetchUserOrders();
+      });
   }, [user.email]);
+
+  const getAvatarUrl = (path) => {
+    if (!path) return profilePlaceholder;
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    return `http://localhost:5000${path}`;
+  };
 
   const fetchUserOrders = () => {
     axios.get(`http://localhost:5000/api/user/orders?email=${user.email}`)
@@ -128,7 +147,7 @@ export default function Profile() {
     reader.readAsDataURL(file);
 
     // Actual Upload
-    axios.post('/api/user/avatar', formData, {
+    axios.post('http://localhost:5000/api/user/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     .then(res => {
@@ -136,13 +155,12 @@ export default function Profile() {
         const newUser = { ...user, avatar: res.data.avatar_url };
         setUser(newUser);
         localStorage.setItem('user', JSON.stringify(newUser));
-        // Force refresh all instances
-        window.location.reload();
+        showAlert("Success", "Profile picture updated successfully.", "success");
       }
     })
     .catch(err => {
       console.error(err);
-      showAlert("Upload Failed", "Avatar synchronization failed. please check your connection.", "error");
+      showAlert("Upload Failed", "Avatar synchronization failed. Please check your connection.", "error");
     });
   };
 
@@ -159,7 +177,7 @@ export default function Profile() {
 
       <div className="profile-pic-container">
         <div className="profile-pic-wrapper relative">
-          <img src={user.avatar || profilePlaceholder} alt={user.name} className="profile-pic" />
+          <img src={getAvatarUrl(user.avatar)} alt={user.name} className="profile-pic" />
           <label className="absolute bottom-0 right-0 p-2 bg-[#D4AF37] rounded-full cursor-pointer hover:scale-110 transition-transform">
              <Camera size={16} color="black" />
              <input type="file" className="hidden" onChange={handleProfilePhotoChange} />
@@ -200,7 +218,7 @@ export default function Profile() {
       <div className="orders-view-container">
         <section className="orders-profile-pic-container">
           <div className="profile-pic-wrapper small-profile-pic">
-            <img src={user.avatar || profilePlaceholder} alt={user.name} className="profile-pic" />
+            <img src={getAvatarUrl(user.avatar)} alt={user.name} className="profile-pic" />
           </div>
           <h3 className="orders-profile-name">{user.name}</h3>
         </section>

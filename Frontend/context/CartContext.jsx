@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const CartContext = createContext(null);
 
@@ -30,7 +30,7 @@ export function CartProvider({ children }) {
     }
   }, [shippingDetails]);
 
-  const addToCart = (product) => {
+  const addToCart = useCallback((product) => {
     setCartItems((prev) => {
       const existing = prev.find(
         (item) =>
@@ -48,26 +48,26 @@ export function CartProvider({ children }) {
       }
       return [...prev, { ...product, cartId: `cart_${Date.now()}_${Math.random()}` }];
     });
-  };
+  }, []);
 
-  const removeFromCart = (cartId) => {
+  const removeFromCart = useCallback((cartId) => {
     setCartItems((prev) => prev.filter((item) => item.cartId !== cartId));
-  };
+  }, []);
 
-  const updateQuantity = (cartId, quantity) => {
+  const updateQuantity = useCallback((cartId, quantity) => {
     if (quantity < 1) return;
     setCartItems((prev) =>
       prev.map((item) => (item.cartId === cartId ? { ...item, quantity } : item))
     );
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCartItems([]);
     setShippingDetails(null);
     setShippingMethod(null);
     localStorage.removeItem('chronos_cart');
     localStorage.removeItem('chronos_shipping');
-  };
+  }, []);
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 

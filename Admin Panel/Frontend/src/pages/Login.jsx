@@ -207,18 +207,6 @@ export default function Login() {
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? (isSignUp ? "Creating account..." : "Logging in...") : (isSignUp ? "Sign Up" : "Login In")}
             </button>
-            
-            <div className="toggle-auth" style={{ textAlign: "center", marginTop: "15px" }}>
-              <p style={{ fontSize: "0.9rem", color: "#888" }}>
-                {isSignUp ? "Already have an admin account?" : "Need a new admin account?"}{" "}
-                <span 
-                  onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(""); setSuccessMsg(""); }} 
-                  style={{ color: "#d4af37", cursor: "pointer", fontWeight: "600" }}
-                >
-                  {isSignUp ? "Log In" : "Sign Up"}
-                </span>
-              </p>
-            </div>
 
             <div className="divider">
               <span></span>
@@ -238,12 +226,7 @@ export default function Login() {
               </p>
             </div>
 
-            <p className="subtitle" style={{ marginTop: "14px", textAlign: "center" }}>
-              Don't have an account?{" "}
-              <span style={{ color: "#d4af37", cursor: "pointer" }} onClick={() => navigate("/create-account")}>
-                Create one
-              </span>
-            </p>
+
           </form>
         </div>
       </div>

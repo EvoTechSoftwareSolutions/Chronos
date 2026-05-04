@@ -68,7 +68,7 @@ export default function Orders() {
       title: 'Delete Order?',
       message: `Are you sure you want to delete order ${id}? This action cannot be undone.`,
       onConfirm: () => {
-        fetch(`http://localhost:5001/api/admin/orders/${cleanId}`, {
+        apiFetch(`/api/admin/orders/${cleanId}`, {
           method: 'DELETE'
         })
           .then(async res => {

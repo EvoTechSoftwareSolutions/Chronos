@@ -55,29 +55,6 @@ export function checkout(req, res) {
       return res.json({ success: false, message: "Error saving order" });
     }
 
-    // Deduct Stock and Trigger Notifications
-    try {
-      const parsedItems = JSON.parse(JSON.stringify(items));
-      parsedItems.forEach((item) => {
-        const updateStockSql = "UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?";
-        db.query(updateStockSql, [item.quantity, item.id], (uerr) => {
-          if (uerr) console.error("Error deducting stock for product", item.id, uerr);
-
-          db.query("SELECT name, stock_quantity FROM products WHERE id = ?", [item.id], (serr, rows) => {
-            if (!serr && rows.length > 0) {
-              const p = rows[0];
-              if (p.stock_quantity < 5) {
-                const notifText = `Low stock alert for ${p.name}. Only ${p.stock_quantity} left in inventory!`;
-                db.query("INSERT INTO notifications (text, type) VALUES (?, 'low_stock')", [notifText]);
-              }
-            }
-          });
-        });
-      });
-    } catch (e) {
-      console.error("Stock deduction trigger error:", e);
-    }
-
     return res.json({ success: true, message: "Order placed successfully!", orderId: result.insertId });
   });
 }
@@ -103,10 +80,24 @@ export function updatePaymentStatus(req, res) {
     return res.status(400).json({ success: false, message: "Invalid payment status" });
   }
 
-  const sql = "UPDATE orders SET payment_status = ? WHERE id = ?";
-  db.query(sql, [status, orderId], (err, result) => {
-    if (err) return res.status(500).json({ success: false, error: err.message });
-    res.json({ success: true, message: "Status updated" });
+  db.query("SELECT * FROM orders WHERE id = ?", [orderId], (selErr, rows) => {
+    if (selErr || rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    const order = rows[0];
+    const previousStatus = order.payment_status;
+
+    const sql = "UPDATE orders SET payment_status = ? WHERE id = ?";
+    db.query(sql, [status, orderId], (err, result) => {
+      if (err) return res.status(500).json({ success: false, error: err.message });
+      
+      // If status changed to 'Paid', trigger side effects
+      if (status === "Paid" && previousStatus !== "Paid") {
+        triggerPaidOrderSideEffects(orderId, order);
+      }
+      
+      res.json({ success: true, message: "Status updated" });
+    });
   });
 }
 
@@ -161,54 +152,7 @@ export function payhereNotify(req, res) {
 
           // Only trigger side-effects if status changed to 'Paid' and it wasn't already 'Paid'
           if (payment_status === "Paid" && previousStatus !== "Paid") {
-            const firstName = order.first_name;
-            const lastName = order.last_name;
-            const userEmail = order.email;
-            const total = order.total;
-            let items = [];
-            try {
-              items = JSON.parse(order.items);
-            } catch (e) {}
-
-            // Trigger New Order Notification
-            const orderNotifText = `New order received: #ORD-${String(order_id).padStart(4, "0")} from ${firstName || "Guest"} ${lastName || ""}`;
-            db.query("INSERT INTO notifications (text, type) VALUES (?, 'order')", [orderNotifText]);
-
-            // Automatic CRM update remains here...
-            if (userEmail) {
-              db.query("SELECT * FROM customers WHERE email = ?", [userEmail], (existsErr, rows) => {
-                const fullName = firstName && lastName ? `${firstName} ${lastName}` : "Unknown User";
-                const initials = (firstName ? firstName[0].toUpperCase() : "") + (lastName ? lastName[0].toUpperCase() : "");
-
-                if (!existsErr && rows.length === 0) {
-                  const customer_id = "CUST-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-                  const insertSql = `
-                    INSERT INTO customers (customer_id, initials, name, email, orders_count, total_spent, join_date, status)
-                    VALUES (?, ?, ?, ?, 1, ?, CURDATE(), 'Active')
-                  `;
-                  db.query(insertSql, [customer_id, initials, fullName, userEmail, total], (ierr) => {
-                    if (!ierr) {
-                      const notifText = `New customer registration: ${fullName} (${customer_id})`;
-                      db.query("INSERT INTO notifications (text, type) VALUES (?, 'customer')", [notifText]);
-                      console.log("New customer added from webhook:", customer_id);
-                    }
-                  });
-                } else {
-                  const existing = rows[0];
-                  const isRegistered = existing.customer_id?.startsWith("ACC-");
-                  const updateSql = `
-                    UPDATE customers 
-                    SET orders_count = orders_count + 1, 
-                        total_spent = total_spent + ?,
-                        status = 'Active'
-                        ${!isRegistered ? ", name = ?" : ""}
-                    WHERE email = ?
-                  `;
-                  const params = !isRegistered ? [total, fullName, userEmail] : [total, userEmail];
-                  db.query(updateSql, params);
-                }
-              });
-            }
+             triggerPaidOrderSideEffects(order_id, order);
           }
         }
       });
@@ -218,4 +162,73 @@ export function payhereNotify(req, res) {
   }
 
   res.sendStatus(200);
+}
+
+// Helper to handle all side effects when an order is paid
+function triggerPaidOrderSideEffects(orderId, order) {
+  const { first_name, last_name, email: userEmail, total, items: rawItems } = order;
+  let items = [];
+  try {
+    items = JSON.parse(rawItems);
+  } catch (e) {
+    console.error("Error parsing items for stock deduction", e);
+    return;
+  }
+
+  // 1. Deduct Stock
+  items.forEach((item) => {
+    const updateStockSql = "UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?";
+    db.query(updateStockSql, [item.quantity, item.id], (uerr) => {
+      if (uerr) console.error("Error deducting stock for product", item.id, uerr);
+
+      db.query("SELECT name, stock_quantity FROM products WHERE id = ?", [item.id], (serr, rows) => {
+        if (!serr && rows.length > 0) {
+          const p = rows[0];
+          if (p.stock_quantity < 5) {
+            const notifText = `Low stock alert for ${p.name}. Only ${p.stock_quantity} left in inventory!`;
+            db.query("INSERT INTO notifications (text, type) VALUES (?, 'low_stock')", [notifText]);
+          }
+        }
+      });
+    });
+  });
+
+  // 2. Trigger New Order Notification
+  const orderNotifText = `New order received: #ORD-${String(orderId).padStart(4, "0")} from ${first_name || "Guest"} ${last_name || ""}`;
+  db.query("INSERT INTO notifications (text, type) VALUES (?, 'order')", [orderNotifText]);
+
+  // 3. Automatic CRM update
+  if (userEmail) {
+    db.query("SELECT * FROM customers WHERE email = ?", [userEmail], (existsErr, rows) => {
+      const fullName = first_name && last_name ? `${first_name} ${last_name}` : "Unknown User";
+      const initials = (first_name ? first_name[0].toUpperCase() : "") + (last_name ? last_name[0].toUpperCase() : "");
+
+      if (!existsErr && rows.length === 0) {
+        const customer_id = "CUST-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        const insertSql = `
+          INSERT INTO customers (customer_id, initials, name, email, orders_count, total_spent, join_date, status)
+          VALUES (?, ?, ?, ?, 1, ?, CURDATE(), 'Active')
+        `;
+        db.query(insertSql, [customer_id, initials, fullName, userEmail, total], (ierr) => {
+          if (!ierr) {
+            const notifText = `New customer registration: ${fullName} (${customer_id})`;
+            db.query("INSERT INTO notifications (text, type) VALUES (?, 'customer')", [notifText]);
+          }
+        });
+      } else {
+        const existing = rows[0];
+        const isRegistered = existing.customer_id?.startsWith("ACC-");
+        const updateSql = `
+          UPDATE customers 
+          SET orders_count = orders_count + 1, 
+              total_spent = total_spent + ?,
+              status = 'Active'
+              ${!isRegistered ? ", name = ?" : ""}
+          WHERE email = ?
+        `;
+        const params = !isRegistered ? [total, fullName, userEmail] : [total, userEmail];
+        db.query(updateSql, params);
+      }
+    });
+  }
 }
