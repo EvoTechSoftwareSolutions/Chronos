@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
@@ -130,6 +130,7 @@ function ProductDetail() {
   }, [product]);
 
   const [qty,         setQty]         = useState(1);
+  const [selectedSize, setSelectedSize] = useState('');
   const [showTop,     setShowTop]     = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
@@ -148,20 +149,118 @@ function ProductDetail() {
 
   const { addToCart } = useCart();
 
+  const parseStrapSizes = (raw) => {
+    if (!raw) return [];
+    const s = String(raw).trim();
+    if (!s) return [];
+    if (s.startsWith('[')) {
+      try {
+        const arr = JSON.parse(s);
+        if (Array.isArray(arr)) return arr.map(String).map(v => v.trim()).filter(Boolean);
+      } catch (e) {}
+    }
+    return s.split(',').map(v => v.trim()).filter(Boolean);
+  };
+
+  const variants = useMemo(() => {
+    if (!product) return [];
+    if (Array.isArray(product.variants) && product.variants.length > 0) return product.variants;
+
+    // Fallback: build variants from strap_size + inventory_tiers/stock_by_size if backend didn't return variants
+    const sizes = parseStrapSizes(product.strap_size);
+    if (sizes.length === 0) return [];
+
+    // Prefer computing from inventory_tiers (FIFO per size) if present.
+    // IMPORTANT: expose only the currently sellable stock (old tier first, then new tier).
+    let tiers = [];
+    try {
+      if (product.inventory_tiers) {
+        tiers = typeof product.inventory_tiers === 'string' ? JSON.parse(product.inventory_tiers) : product.inventory_tiers;
+      }
+    } catch (e) {
+      tiers = [];
+    }
+
+    if (Array.isArray(tiers) && tiers.length > 0) {
+      return sizes.map((size) => {
+        let stock = 0;
+        let price = product.price;
+        let tier_index = null;
+
+        for (let i = 0; i < tiers.length; i++) {
+          const t = tiers[i];
+          if (t && typeof t.stock === 'object' && t.stock !== null) {
+            const qty = Number(t.stock[size]) || 0;
+            if (qty > 0) {
+              stock = qty;
+              price = t.price ?? price;
+              tier_index = i;
+              break;
+            }
+          }
+        }
+
+        if (tier_index === null) {
+          const last = tiers[tiers.length - 1];
+          if (last?.price) price = last.price;
+        }
+
+        return { size, stock, soldOut: stock <= 0, price, tier_index };
+      });
+    }
+
+    const stockBySize = product.stock_by_size || {};
+    const priceBySize = product.price_by_size || {};
+    return sizes.map((size) => {
+      const stock = Number(stockBySize[size]) || 0;
+      const price = priceBySize[size] ?? product.price;
+      return { size, stock, soldOut: stock <= 0, price };
+    });
+  }, [product]);
+
+  const hasVariants = variants.length > 0;
+  const selectedVariant = hasVariants ? variants.find((v) => v.size === selectedSize) : null;
+  const selectedStock = hasVariants ? (Number(selectedVariant?.stock) || 0) : (Number(product?.stock_quantity) || 0);
+  const selectedPrice = hasVariants
+    ? (selectedVariant?.price ?? product?.price)
+    : product?.price;
+
+  useEffect(() => {
+    if (!product) return;
+    if (!hasVariants) {
+      setSelectedSize('');
+      return;
+    }
+    // Pick first in-stock size; otherwise keep empty (forces sold-out behavior)
+    const firstInStock = variants.find((v) => Number(v.stock) > 0);
+    setSelectedSize(firstInStock?.size || variants[0]?.size || '');
+  }, [product?.id, hasVariants, variants]);
+
+  useEffect(() => {
+    // Clamp qty when size/stock changes
+    setQty((q) => Math.max(1, Math.min(q, Math.max(1, selectedStock || 0))));
+  }, [selectedStock]);
+
   const handleAddToCart = () => {
     if (!product) return;
+    if (hasVariants && !selectedSize) return;
+    if (selectedStock <= 0) return;
     addToCart({
       id:       product.id,
       category: product.category || category,
       brand:    product.brand,
       name:     product.name,
-      price:    product.price,
+      price:    selectedPrice,
       priceNum: typeof product.priceNum === 'number'
                   ? product.priceNum
-                  : parseFloat(String(product.price ?? '0').replace(/[^0-9.]/g, '')) || 0,
+                  : parseFloat(String(selectedPrice ?? '0').replace(/[^0-9.]/g, '')) || 0,
       image:    images[0],
       tags:     product.tags || [],
       quantity: qty,
+      size: selectedSize || undefined,
+      strap_size: selectedSize || undefined,
+      strapSize: selectedSize || undefined,
+      maxStock: selectedStock,
     });
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2500);
@@ -299,7 +398,7 @@ function ProductDetail() {
 
             {/* Price */}
             <p className="text-[#D4AF37] text-4xl lg:text-5xl font-bold tracking-tight text-center lg:text-left mt-4 py-2">
-              Rs. <span className="ml-2">{String(product.price).replace(/[^0-9.]/g, '').trim()}</span>
+              Rs. <span className="ml-2">{String(selectedPrice).replace(/[^0-9.]/g, '').trim()}</span>
             </p>
 
             {/* Description */}
@@ -323,6 +422,37 @@ function ProductDetail() {
 
             {/* Selectors Group */}
             <div className="flex flex-col gap-10">
+
+              {/* Strap size */}
+              {hasVariants && (
+                <div className="flex items-start gap-8">
+                  <p className="text-white text-sm font-bold tracking-widest min-w-[100px] pt-2">Strap :</p>
+                  <div className="flex flex-wrap gap-3">
+                    {variants.map((v) => {
+                      const sold = Number(v.stock) <= 0;
+                      const active = v.size === selectedSize;
+                      return (
+                        <button
+                          key={v.size}
+                          type="button"
+                          disabled={sold}
+                          onClick={() => setSelectedSize(v.size)}
+                          className={`px-4 py-2 rounded-xl border text-xs font-bold tracking-widest uppercase transition-all ${
+                            sold
+                              ? 'border-white/10 text-gray-600 bg-white/[0.02] cursor-not-allowed line-through'
+                              : active
+                              ? 'border-[#D4AF37] text-[#D4AF37] bg-[#D4AF37]/10'
+                              : 'border-white/10 text-gray-300 hover:border-[#D4AF37]/50 hover:text-[#D4AF37]'
+                          }`}
+                          title={sold ? 'Sold out' : `${v.stock} available`}
+                        >
+                          {v.size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               
               {/* Quantity */}
               <div className="flex items-center gap-8">
@@ -336,29 +466,32 @@ function ProductDetail() {
                     {qty}
                   </span>
                   <button
-                    onClick={() => setQty(q => q + 1)}
+                    onClick={() => setQty(q => Math.min(q + 1, Math.max(1, selectedStock || product?.stock_quantity || 1)))}
                     className="w-12 h-full flex items-center justify-center text-gray-400 hover:text-[#D4AF37] hover:bg-white/5 transition-colors text-xl font-light"
                   >+</button>
                 </div>
+                <span className="text-gray-500 text-xs tracking-widest uppercase">
+                  {selectedStock > 0 ? `${selectedStock} available` : 'Sold out'}
+                </span>
               </div>
             </div>
 
             {/* Stock Status */}
             <div className="flex items-center gap-3 mt-2">
-              {product.stock_quantity <= 0 ? (
+              {selectedStock <= 0 ? (
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-950/60 border border-red-700/50 text-red-400 text-xs font-bold uppercase tracking-widest">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                   Out of Stock
                 </span>
-              ) : product.stock_quantity <= 5 ? (
+              ) : selectedStock <= 5 ? (
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-950/60 border border-amber-600/40 text-amber-400 text-xs font-bold uppercase tracking-widest">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                  Only {product.stock_quantity} left in stock
+                  Only {selectedStock} left in stock
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-950/60 border border-green-700/40 text-green-400 text-xs font-bold uppercase tracking-widest">
                   <span className="w-2 h-2 rounded-full bg-green-500" />
-                  {product.stock_quantity} in Stock
+                  {selectedStock} in Stock
                 </span>
               )}
             </div>
@@ -367,29 +500,29 @@ function ProductDetail() {
             <div className="flex flex-col gap-6 mt-6">
               <button
                 onClick={handleAddToCart}
-                disabled={product.stock_quantity <= 0}
+                disabled={selectedStock <= 0 || (hasVariants && !selectedSize)}
                 className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[13px] transition-all duration-500 overflow-hidden relative group ${
                   addedToCart
                     ? 'bg-green-600 text-white'
-                    : product.stock_quantity <= 0
+                    : selectedStock <= 0
                     ? 'bg-[#1a1a1a] text-gray-600 cursor-not-allowed'
                     : 'bg-[#D4AF37] hover:bg-[#c9a430] text-black shadow-[0_10px_30px_rgba(212,175,55,0.3)] hover:-translate-y-1 active:scale-[0.98]'
                 }`}
               >
-                <span className="relative z-10">{addedToCart ? '✓ Added to Cart' : (product.stock_quantity > 0 ? 'Add to Cart' : 'Sold Out')}</span>
+                <span className="relative z-10">{addedToCart ? '✓ Added to Cart' : (selectedStock > 0 ? 'Add to Cart' : 'Sold Out')}</span>
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               </button>
               
               <button
-                onClick={() => { if (product.stock_quantity > 0) { handleAddToCart(); navigate('/cart'); } }}
-                disabled={product.stock_quantity <= 0}
+                onClick={() => { if (selectedStock > 0) { handleAddToCart(); navigate('/checkout/shipping'); } }}
+                disabled={selectedStock <= 0 || (hasVariants && !selectedSize)}
                 className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[13px] transition-all duration-500 ${
-                  product.stock_quantity <= 0
+                  selectedStock <= 0
                     ? 'bg-[#1a1a1a] text-gray-600 cursor-not-allowed border border-white/5'
                     : 'bg-transparent border border-[#D4AF37]/40 text-white hover:bg-[#D4AF37]/5 hover:border-[#D4AF37] hover:-translate-y-1 active:scale-[0.98]'
                 }`}
               >
-                {product.stock_quantity <= 0 ? 'Currently Unavailable' : 'Buy Now'}
+                {selectedStock <= 0 ? 'Currently Unavailable' : 'Buy Now'}
               </button>
             </div>
 

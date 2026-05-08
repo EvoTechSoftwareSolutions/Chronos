@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import express from "express";
 import db from "../config/db.js";
+import { promisify } from "util";
 
 const MERCHANT_ID = process.env.MERCHANT_ID || "1234976";
 const MERCHANT_SECRET = process.env.MERCHANT_SECRET || "MTk1MTkwMDYyMzIyMjgxMzc4OTgyNDAxNjY0NzM5NTE0MDMyNjM4";
@@ -175,23 +176,126 @@ function triggerPaidOrderSideEffects(orderId, order) {
     return;
   }
 
-  // 1. Deduct Stock
-  items.forEach((item) => {
-    const updateStockSql = "UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?";
-    db.query(updateStockSql, [item.quantity, item.id], (uerr) => {
-      if (uerr) console.error("Error deducting stock for product", item.id, uerr);
+  // 1. Deduct Stock (FIFO by tier; per strap size).
+  // Also record the exact tier allocations into order.items so admin cancel/delete can restock correctly.
+  const queryAsync = promisify(db.query).bind(db);
 
-      db.query("SELECT name, stock_quantity FROM products WHERE id = ?", [item.id], (serr, rows) => {
-        if (!serr && rows.length > 0) {
-          const p = rows[0];
-          if (p.stock_quantity < 5) {
-            const notifText = `Low stock alert for ${p.name}. Only ${p.stock_quantity} left in inventory!`;
-            db.query("INSERT INTO notifications (text, type) VALUES (?, 'low_stock')", [notifText]);
+  (async () => {
+    const updatedItems = Array.isArray(items) ? items.map((it) => ({ ...it })) : [];
+
+    for (let idx = 0; idx < updatedItems.length; idx++) {
+      const item = updatedItems[idx];
+      if (!item?.id || !item?.quantity) continue;
+
+      const selectedStrapSize = item.strap_size || item.strapSize || null;
+      const requestedQty = Math.max(0, Number(item.quantity) || 0);
+      if (requestedQty <= 0) continue;
+
+      let productRows = [];
+      try {
+        productRows = await queryAsync("SELECT * FROM products WHERE id = ?", [item.id]);
+      } catch (e) {
+        console.error("Error fetching product for stock deduction", item.id, e);
+        continue;
+      }
+      if (!Array.isArray(productRows) || productRows.length === 0) continue;
+
+      const product = productRows[0];
+      let tiers = [];
+      try {
+        if (product.inventory_tiers) {
+          tiers = typeof product.inventory_tiers === "string" ? JSON.parse(product.inventory_tiers) : product.inventory_tiers;
+        }
+      } catch (e) {
+        console.error("Error parsing inventory_tiers for product", product.id, e);
+        tiers = [];
+      }
+
+      const allocations = [];
+      let remainingToDeduct = requestedQty;
+      let deductedTotal = 0;
+
+      if (Array.isArray(tiers) && tiers.length > 0) {
+        for (let tIndex = 0; tIndex < tiers.length; tIndex++) {
+          if (remainingToDeduct <= 0) break;
+          const tier = tiers[tIndex];
+
+          if (typeof tier?.stock === "object" && tier.stock !== null) {
+            if (selectedStrapSize) {
+              const qtyInSize = Number(tier.stock[selectedStrapSize]) || 0;
+              if (qtyInSize <= 0) continue;
+              const take = Math.min(remainingToDeduct, qtyInSize);
+              tier.stock[selectedStrapSize] = qtyInSize - take;
+              remainingToDeduct -= take;
+              deductedTotal += take;
+              allocations.push({ tierIndex: tIndex, strapSize: selectedStrapSize, quantity: take });
+            } else {
+              // Backward-compat: no strap size selected, consume any available size FIFO
+              const sizeKeys = Object.keys(tier.stock);
+              for (const skey of sizeKeys) {
+                if (remainingToDeduct <= 0) break;
+                const qtyInSize = Number(tier.stock[skey]) || 0;
+                if (qtyInSize <= 0) continue;
+                const take = Math.min(remainingToDeduct, qtyInSize);
+                tier.stock[skey] = qtyInSize - take;
+                remainingToDeduct -= take;
+                deductedTotal += take;
+                allocations.push({ tierIndex: tIndex, strapSize: skey, quantity: take });
+              }
+            }
+          } else {
+            const tierStock = Number(tier?.stock) || 0;
+            if (tierStock <= 0) continue;
+            const take = Math.min(remainingToDeduct, tierStock);
+            tier.stock = tierStock - take;
+            remainingToDeduct -= take;
+            deductedTotal += take;
+            allocations.push({ tierIndex: tIndex, strapSize: selectedStrapSize, quantity: take });
           }
         }
-      });
-    });
-  });
+
+        // If we couldn't fully deduct, DO NOT over-decrement stock_quantity.
+        const newTotalStock = Math.max(0, (Number(product.stock_quantity) || 0) - deductedTotal);
+        try {
+          await queryAsync("UPDATE products SET stock_quantity = ?, inventory_tiers = ? WHERE id = ?", [
+            newTotalStock,
+            JSON.stringify(tiers),
+            item.id,
+          ]);
+          checkLowStock(item.id, product.name, newTotalStock);
+        } catch (e) {
+          console.error("Error updating tiers/stock for product", item.id, e);
+        }
+      } else {
+        // Fallback: simple stock deduction (no tier info available)
+        deductedTotal = Math.min(requestedQty, Math.max(0, Number(product.stock_quantity) || 0));
+        const newTotalStock = Math.max(0, (Number(product.stock_quantity) || 0) - deductedTotal);
+        try {
+          await queryAsync("UPDATE products SET stock_quantity = ? WHERE id = ?", [newTotalStock, item.id]);
+          checkLowStock(item.id, product.name, newTotalStock);
+        } catch (e) {
+          console.error("Error deducting stock for product", item.id, e);
+        }
+      }
+
+      item.stock_allocations = allocations;
+      item.deducted_quantity = deductedTotal;
+    }
+
+    // Persist allocations back into the order record for accurate restocks later.
+    try {
+      await queryAsync("UPDATE orders SET items = ? WHERE id = ?", [JSON.stringify(updatedItems), orderId]);
+    } catch (e) {
+      console.error("Failed to persist stock allocations into order", orderId, e);
+    }
+  })();
+
+  function checkLowStock(pid, pname, newQty) {
+    if (newQty < 5) {
+      const notifText = `Low stock alert for ${pname}. Only ${newQty} left in inventory!`;
+      db.query("INSERT INTO notifications (text, type) VALUES (?, 'low_stock')", [notifText]);
+    }
+  }
 
   // 2. Trigger New Order Notification
   const orderNotifText = `New order received: #ORD-${String(orderId).padStart(4, "0")} from ${first_name || "Guest"} ${last_name || ""}`;

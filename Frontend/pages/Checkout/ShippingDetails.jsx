@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
@@ -6,6 +6,47 @@ import Footer from '../../components/Footer';
 import { useCart } from '../../context/CartContext';
 
 // dynamically loading data
+
+const SRI_LANKA = {
+  "Central": ["Kandy", "Matale", "Nuwara Eliya"],
+  "Eastern": ["Ampara", "Batticaloa", "Trincomalee"],
+  "North Central": ["Anuradhapura", "Polonnaruwa"],
+  "Northern": ["Jaffna", "Kilinochchi", "Mannar", "Mullaitivu", "Vavuniya"],
+  "North Western": ["Kurunegala", "Puttalam"],
+  "Sabaragamuwa": ["Kegalle", "Ratnapura"],
+  "Southern": ["Galle", "Matara", "Hambantota"],
+  "Uva": ["Badulla", "Moneragala"],
+  "Western": ["Colombo", "Gampaha", "Kalutara"],
+};
+
+function getLoggedInEmail() {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user?.email || "";
+  } catch {
+    return "";
+  }
+}
+
+function addressesKey(email) {
+  return `chronos_shipping_addresses_${email || "guest"}`;
+}
+
+function safeJsonParse(value, fallback) {
+  try {
+    const parsed = JSON.parse(value);
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function loadSavedAddresses(email) {
+  const key = addressesKey(email);
+  const stored = localStorage.getItem(key);
+  const parsed = safeJsonParse(stored || "[]", []);
+  return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+}
 
 function fmt(n) {
   return Number(n).toLocaleString('en-US');
@@ -62,6 +103,34 @@ function ShippingDetails() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Checkout is behind login. Use logged-in email ONLY as the storage key owner.
+  // Shipping details email is allowed to differ (contact email for this order).
+  const accountEmail = useMemo(() => getLoggedInEmail(), []);
+  const [selectedSavedId, setSelectedSavedId] = useState("new");
+
+  const [savedAddresses, setSavedAddresses] = useState(() => loadSavedAddresses(accountEmail));
+
+  React.useEffect(() => {
+    setSavedAddresses(loadSavedAddresses(accountEmail));
+    setSelectedSavedId("new");
+  }, [accountEmail]);
+
+  React.useEffect(() => {
+    const onStorage = (e) => {
+      if (!accountEmail) return;
+      if (e && typeof e.key === "string" && e.key !== addressesKey(accountEmail)) return;
+      setSavedAddresses(loadSavedAddresses(accountEmail));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [accountEmail]);
+
+  const provinces = useMemo(() => Object.keys(SRI_LANKA), []);
+  const districts = useMemo(() => {
+    const prov = formData.province;
+    return prov && SRI_LANKA[prov] ? SRI_LANKA[prov] : [];
+  }, [formData.province]);
+
   const subtotal = cartItems.reduce((s, i) => {
     const price = typeof i.priceNum === 'number' ? i.priceNum : parseFloat(String(i.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
     return s + price * i.quantity;
@@ -74,6 +143,37 @@ function ShippingDetails() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const selectSavedAddress = (id) => {
+    setSelectedSavedId(id);
+    if (id === "new") {
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: formData.email || accountEmail || '',
+        address: '',
+        mobile: '',
+        city: '',
+        province: '',
+        zipCode: '',
+      });
+      setError('');
+      return;
+    }
+    const found = savedAddresses.find((a) => String(a.id) === String(id));
+    if (!found) return;
+    setFormData({
+      firstName: found.firstName || '',
+      lastName: found.lastName || '',
+      email: found.email || accountEmail || '',
+      address: found.address || '',
+      mobile: found.mobile || '',
+      city: found.city || '',
+      province: found.province || '',
+      zipCode: found.zipCode || '',
+    });
+    setError('');
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -84,6 +184,25 @@ function ShippingDetails() {
         return;
       }
     }
+
+    // Persist address for reuse (per logged-in account), but keep shipping email as user-entered.
+    const key = addressesKey(accountEmail);
+    const list = loadSavedAddresses(accountEmail);
+
+    const nextId =
+      selectedSavedId !== "new"
+        ? selectedSavedId
+        : `addr_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+    const nextAddress = { id: nextId, ...formData };
+    const nextList = [
+      nextAddress,
+      ...list.filter((a) => String(a.id) !== String(nextId)),
+    ].slice(0, 10); // keep last 10
+
+    localStorage.setItem(key, JSON.stringify(nextList));
+    setSavedAddresses(nextList);
+    setSelectedSavedId(String(nextId));
 
     setShippingDetails(formData);
     navigate('/checkout/shipping-method');
@@ -136,6 +255,27 @@ function ShippingDetails() {
               {error && <p className="text-red-500 mb-6 text-sm bg-red-500/10 p-3 rounded-lg border border-red-500/20">{error}</p>}
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs uppercase tracking-widest text-gray-400">Shipping address</label>
+                  <select
+                    value={selectedSavedId}
+                    onChange={(e) => selectSavedAddress(e.target.value)}
+                    className="w-full bg-transparent text-white border border-[#333] focus:border-[#D4AF37] py-3 px-4 rounded-lg outline-none transition-colors text-sm"
+                  >
+                    <option value="new" className="text-black">+ Add New Address</option>
+                    {savedAddresses.map((a) => (
+                      <option key={a.id} value={a.id} className="text-black">
+                        {a.firstName} {a.lastName} — {a.address}, {a.city} ({a.province})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-gray-500">
+                    {savedAddresses.length > 0
+                      ? "Select a saved address to reuse it, or choose “Add New Address” to enter different shipping details."
+                      : "No saved addresses yet. Choose “Add New Address” and submit to save it for next time."}
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
                     <label className="text-xs uppercase tracking-widest text-gray-400">First Name</label>
@@ -179,18 +319,41 @@ function ShippingDetails() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs uppercase tracking-widest text-gray-400">City</label>
-                    <input 
-                      type="text" name="city" value={formData.city} onChange={handleInputChange}
-                      placeholder="City" className="w-full bg-transparent border border-[#333] focus:border-[#D4AF37] py-3 px-4 rounded-lg outline-none transition-colors text-sm"
-                    />
+                    <label className="text-xs uppercase tracking-widest text-gray-400">Province</label>
+                    <select
+                      name="province"
+                      value={formData.province}
+                      onChange={(e) => {
+                        const province = e.target.value;
+                        const nextDistricts = SRI_LANKA[province] || [];
+                        setFormData((prev) => ({
+                          ...prev,
+                          province,
+                          city: nextDistricts.includes(prev.city) ? prev.city : (nextDistricts[0] || ''),
+                        }));
+                      }}
+                      className="w-full bg-transparent text-white border border-[#333] focus:border-[#D4AF37] py-3 px-4 rounded-lg outline-none transition-colors text-sm"
+                    >
+                      <option value="" className="text-black">Select Province</option>
+                      {provinces.map((p) => (
+                        <option key={p} value={p} className="text-black">{p}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs uppercase tracking-widest text-gray-400">Province</label>
-                    <input 
-                      type="text" name="province" value={formData.province} onChange={handleInputChange}
-                      placeholder="Province" className="w-full bg-transparent border border-[#333] focus:border-[#D4AF37] py-3 px-4 rounded-lg outline-none transition-colors text-sm"
-                    />
+                    <label className="text-xs uppercase tracking-widest text-gray-400">District</label>
+                    <select
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      disabled={!formData.province}
+                      className="w-full bg-transparent text-white border border-[#333] focus:border-[#D4AF37] py-3 px-4 rounded-lg outline-none transition-colors text-sm disabled:opacity-50"
+                    >
+                      <option value="" className="text-black">{formData.province ? "Select District" : "Select Province First"}</option>
+                      {districts.map((d) => (
+                        <option key={d} value={d} className="text-black">{d}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="text-xs uppercase tracking-widest text-gray-400">Zip code</label>

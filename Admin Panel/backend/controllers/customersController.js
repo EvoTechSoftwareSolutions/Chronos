@@ -4,6 +4,38 @@ const generateCustomerId = () => {
   return 'CUST-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 };
 
+function normalizeCanceled(value) {
+  if (!value) return value;
+  if (value === 'Cancelled') return 'Canceled';
+  return value;
+}
+
+function isCanceled(value) {
+  const v = normalizeCanceled(value);
+  return v === 'Canceled';
+}
+
+function addTierStock(tier, qty, strapSize) {
+  if (!tier) return;
+  const addQty = Number(qty) || 0;
+  if (addQty <= 0) return;
+
+  if (strapSize) {
+    if (typeof tier.stock !== 'object' || tier.stock === null) tier.stock = {};
+    tier.stock[strapSize] = (Number(tier.stock[strapSize]) || 0) + addQty;
+    return;
+  }
+
+  if (typeof tier.stock === 'object' && tier.stock !== null) {
+    const keys = Object.keys(tier.stock);
+    const key = keys.length > 0 ? keys[0] : 'Default';
+    tier.stock[key] = (Number(tier.stock[key]) || 0) + addQty;
+    return;
+  }
+
+  tier.stock = (Number(tier.stock) || 0) + addQty;
+}
+
 exports.getCustomers = async (req, res) => {
   try {
     const [customers] = await pool.query('SELECT * FROM customers ORDER BY join_date DESC');
@@ -92,8 +124,63 @@ exports.updateCustomer = async (req, res) => {
 exports.deleteCustomer = async (req, res) => {
   const { id } = req.params;
   try {
+    // 1. Get the customer email to find their orders
+    const [custRows] = await pool.query('SELECT email FROM customers WHERE id = ?', [id]);
+    
+    if (custRows.length > 0) {
+      const email = custRows[0].email;
+      
+      // 2. Find their orders
+      const [orderRows] = await pool.query('SELECT * FROM orders WHERE email = ?', [email]);
+      
+      for (const order of orderRows) {
+        const { id: orderId, order_status, payment_status, items } = order;
+        
+        // 3. Restore stock if needed
+        if (order_status !== 'Delivered' && order_status !== 'Shipped' && !isCanceled(order_status)) {
+          if (payment_status === 'Paid') {
+            let parsedItems = [];
+            try {
+              parsedItems = JSON.parse(items || '[]');
+            } catch (e) {}
+
+            for (const item of parsedItems) {
+              if (item.id && item.quantity) {
+                const [productRows] = await pool.query('SELECT * FROM products WHERE id = ?', [item.id]);
+                if (productRows.length > 0) {
+                  const product = productRows[0];
+                  let tiers = [];
+                  try {
+                    if (product.inventory_tiers) {
+                      tiers = typeof product.inventory_tiers === 'string' ? JSON.parse(product.inventory_tiers) : product.inventory_tiers;
+                    }
+                  } catch (e) { tiers = []; }
+
+                  if (Array.isArray(tiers) && tiers.length > 0) {
+                    addTierStock(tiers[0], item.quantity, item.strap_size || item.strapSize);
+                    await pool.query(
+                      'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ? WHERE id = ?',
+                      [item.quantity, JSON.stringify(tiers), item.id]
+                    );
+                  } else {
+                    await pool.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.id]);
+                  }
+                } else {
+                  await pool.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.id]);
+                }
+              }
+            }
+          }
+        }
+        
+        // 4. Delete the order
+        await pool.query('DELETE FROM orders WHERE id = ?', [orderId]);
+      }
+    }
+
+    // 5. Finally, delete the customer
     await pool.query(`DELETE FROM customers WHERE id=?`, [id]);
-    res.json({ message: 'Customer deleted successfully' });
+    res.json({ message: 'Customer and their orders deleted successfully' });
   } catch (err) {
     console.error('Customer delete error:', err);
     res.status(500).json({ error: 'Failed to delete customer' });

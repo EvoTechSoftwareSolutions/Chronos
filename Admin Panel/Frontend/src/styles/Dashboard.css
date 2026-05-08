@@ -217,6 +217,15 @@
   overflow: hidden;
 }
 
+@media (max-width: 640px) {
+  .notifications-dropdown {
+    width: 92vw;
+    max-width: 92vw;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
 .notif-header {
   padding: 12px 15px;
   font-weight: 600;
@@ -341,7 +350,10 @@
     border-bottom: 1px solid #2a2a2a;
     flex-direction: row;
     justify-content: space-between;
-    height: 70px;
+    height: auto;
+    min-height: 70px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .header-actions {

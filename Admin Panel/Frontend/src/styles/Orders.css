@@ -60,6 +60,7 @@
   border-radius: 12px;
   border: 1px solid #333;
   padding: 20px;
+  overflow: hidden;
 }
 
 .orders-table {
@@ -404,6 +405,7 @@
 
   .orders-table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .orders-table {
@@ -424,5 +426,44 @@
 @media (max-width: 640px) {
   .orders-stats-row {
     grid-template-columns: 1fr;
+  }
+
+  .orders-table-container {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .modal-header {
+    padding: 16px 16px;
+  }
+
+  .modal-body.scrollable {
+    padding: 16px;
+    gap: 22px;
+  }
+
+  .order-product-row {
+    gap: 14px;
+  }
+
+  .product-brief {
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .product-name,
+  .product-meta,
+  .address-box p {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .item-price {
+    white-space: nowrap;
   }
 }

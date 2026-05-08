@@ -254,3 +254,31 @@ input:checked + .slider:before {
 .watch2 { top: 100px; right: 40px; z-index: 5; width: 240px; transform: rotate(18deg); }
 .watch3 { top: 380px; right: 20px; z-index: 8; width: 250px; transform: rotate(-15deg); }
 .watch4 { top: 520px; left: 50px; z-index: 4; width: 210px; transform: rotate(8deg); }
+
+/* --- Responsive --- */
+@media (max-width: 1024px) {
+  .settings-layout {
+    min-height: auto;
+    gap: 20px;
+  }
+
+  .settings-background {
+    min-width: 250px;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .settings-forms {
+    max-width: 100%;
+    padding-bottom: 20px;
+  }
+
+  .settings-background {
+    display: none;
+  }
+}

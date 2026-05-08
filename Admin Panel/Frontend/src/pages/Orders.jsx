@@ -14,6 +14,8 @@ export default function Orders() {
 
   const { showModal } = useModal();
 
+  const isPaid = (value) => String(value || '').trim() === 'Paid';
+
   const fetchOrders = () => {
     apiFetch('/api/admin/orders')
       .then(res => res.json())
@@ -53,6 +55,37 @@ export default function Orders() {
         }
       })
       .catch(err => {
+        // UI disables invalid transitions (e.g. Shipped/Delivered while not Paid),
+        // but keep a generic error for unexpected failures.
+        showModal({ type: 'error', title: 'Update Failed', message: err.message });
+      });
+  };
+
+  const handlePaymentStatusUpdate = (id, newPaymentStatus) => {
+    const cleanId = id.replace('#', '');
+    
+    apiFetch(`/api/admin/orders/${cleanId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ payment_status: newPaymentStatus })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then(json => {
+        if (json.success) {
+          fetchOrders();
+          showModal({
+            type: 'success',
+            title: 'Update Successful',
+            message: `Payment status for ${id} has been updated to ${newPaymentStatus}.`
+          });
+          if (selectedOrder && selectedOrder.id === id) {
+             setSelectedOrder({ ...selectedOrder, payment_status: newPaymentStatus });
+          }
+        }
+      })
+      .catch(err => {
         showModal({
           type: 'error',
           title: 'Update Failed',
@@ -60,7 +93,6 @@ export default function Orders() {
         });
       });
   };
-
   const handleDeleteOrder = (id) => {
     const cleanId = id.replace('#', '');
     showModal({
@@ -152,6 +184,7 @@ export default function Orders() {
               <th>Date</th>
               <th>Items</th>
               <th>Total</th>
+              <th>Payment</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -177,16 +210,26 @@ export default function Orders() {
                   <td className="items-col">{order.items_summary}</td>
                   <td>{order.total_formatted}</td>
                   <td>
+                    <span className={`id-badge ${String(order.payment_status || 'Pending').toLowerCase()}`}>
+                      {order.payment_status || 'Pending'}
+                    </span>
+                  </td>
+                  <td>
+                    {(() => {
+                      const canShipDeliver = isPaid(order.payment_status);
+                      return (
                     <select 
                       className={`status-select-badge ${order.status.toLowerCase()}`}
                       value={order.status}
                       onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
                     >
                       <option value="Pending">Pending</option>
-                      <option value="Shipped">Shipped</option>
-                      <option value="Delivered">Delivered</option>
+                      <option value="Shipped" disabled={!canShipDeliver}>Shipped</option>
+                      <option value="Delivered" disabled={!canShipDeliver}>Delivered</option>
                       <option value="Canceled">Canceled</option>
                     </select>
+                      );
+                    })()}
                   </td>
                   <td>
                       <div className="action-btns">
@@ -204,7 +247,7 @@ export default function Orders() {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="9" className="empty-table-msg text-center" style={{padding: '40px', color: '#555', fontStyle: 'italic'}}>No orders found.</td></tr>
+              <tr><td colSpan="10" className="empty-table-msg text-center" style={{padding: '40px', color: '#555', fontStyle: 'italic'}}>No orders found.</td></tr>
             )}
           </tbody>
         </table>
@@ -259,6 +302,11 @@ export default function Orders() {
                          <div className="product-brief">
                             <span className="qty-tag">{item.quantity}x</span>
                             <span className="product-name">{item.name}</span>
+                            {item.strap_size || item.strapSize ? (
+                              <span className="product-meta">
+                                Strap size: <strong>{item.strap_size || item.strapSize}</strong>
+                              </span>
+                            ) : null}
                          </div>
                          <span className="item-price">Rs {(item.priceNum || 0).toLocaleString()}</span>
                       </div>
@@ -289,21 +337,39 @@ export default function Orders() {
                     </div>
                     <div className="info-item">
                        <label>Payment Status</label>
-                       <p className={selectedOrder.payment_status?.toLowerCase()}>{selectedOrder.payment_status || 'Pending'}</p>
+                       <div className="status-update-wrap">
+                          <select 
+                            className={`status-select-badge ${selectedOrder.payment_status?.toLowerCase() || 'pending'}`}
+                            value={selectedOrder.payment_status || 'Pending'}
+                            onChange={(e) => handlePaymentStatusUpdate(selectedOrder.id, e.target.value)}
+                          >
+                            <option value="Paid">Paid</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Held">Held</option>
+                            <option value="Delayed">Delayed</option>
+                            <option value="Failed">Failed</option>
+                            <option value="Canceled">Canceled</option>
+                          </select>
+                       </div>
                     </div>
                     <div className="info-item">
                        <label>Order Status</label>
                        <div className="status-update-wrap">
+                          {(() => {
+                            const canShipDeliver = isPaid(selectedOrder.payment_status);
+                            return (
                           <select 
                             className={`status-select-badge ${selectedOrder.status.toLowerCase()}`}
                             value={selectedOrder.status}
                             onChange={(e) => handleStatusUpdate(selectedOrder.id, e.target.value)}
                           >
                             <option value="Pending">Pending</option>
-                            <option value="Shipped">Shipped</option>
-                            <option value="Delivered">Delivered</option>
+                            <option value="Shipped" disabled={!canShipDeliver}>Shipped</option>
+                            <option value="Delivered" disabled={!canShipDeliver}>Delivered</option>
                             <option value="Canceled">Canceled</option>
                           </select>
+                            );
+                          })()}
                        </div>
                     </div>
                  </div>

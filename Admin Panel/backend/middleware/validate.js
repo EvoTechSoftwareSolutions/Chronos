@@ -40,11 +40,22 @@ function validateRegister(req, res, next) {
 }
 
 function validateOrderStatus(req, res, next) {
-  const { order_status } = req.body || {};
-  const allowed = ["Pending", "Shipped", "Delivered", "Canceled"];
-  if (!allowed.includes(order_status)) {
+  const { order_status, payment_status } = req.body || {};
+  const allowedOrderStatuses = ["Pending", "Shipped", "Delivered", "Canceled", "Cancelled"];
+  const allowedPaymentStatuses = ["Paid", "Pending", "Held", "Delayed", "Failed", "Canceled", "Cancelled"];
+
+  if (order_status === undefined && payment_status === undefined) {
+    return res.status(400).json({ error: "order_status or payment_status is required" });
+  }
+
+  if (order_status !== undefined && !allowedOrderStatuses.includes(order_status)) {
     return res.status(400).json({ error: "Invalid order_status value" });
   }
+
+  if (payment_status !== undefined && !allowedPaymentStatuses.includes(payment_status)) {
+    return res.status(400).json({ error: "Invalid payment_status value" });
+  }
+
   next();
 }
 

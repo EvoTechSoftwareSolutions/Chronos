@@ -2,20 +2,57 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 const CartContext = createContext(null);
 
+const getUserCartKey = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user && user.email) {
+      return `chronos_cart_${user.email}`;
+    }
+    return 'chronos_cart_guest';
+  } catch {
+    return 'chronos_cart_guest';
+  }
+};
+
 export function CartProvider({ children }) {
+  const [cartKey, setCartKey] = useState(getUserCartKey);
+
   const [cartItems, setCartItems] = useState(() => {
     try {
-      const stored = localStorage.getItem('chronos_cart');
+      const stored = localStorage.getItem(getUserCartKey());
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
     }
   });
 
+  // Listen for login/logout to switch carts
+  useEffect(() => {
+    const handleAuthChange = () => {
+      const newKey = getUserCartKey();
+      if (newKey !== cartKey) {
+        setCartKey(newKey);
+        try {
+          const stored = localStorage.getItem(newKey);
+          setCartItems(stored ? JSON.parse(stored) : []);
+        } catch {
+          setCartItems([]);
+        }
+      }
+    };
+    
+    window.addEventListener("auth-changed", handleAuthChange);
+    window.addEventListener("storage", handleAuthChange);
+    return () => {
+      window.removeEventListener("auth-changed", handleAuthChange);
+      window.removeEventListener("storage", handleAuthChange);
+    };
+  }, [cartKey]);
+
   // Persist to localStorage whenever cart changes
   useEffect(() => {
-    localStorage.setItem('chronos_cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    localStorage.setItem(cartKey, JSON.stringify(cartItems));
+  }, [cartItems, cartKey]);
 
   const [shippingDetails, setShippingDetails] = useState(null);
 
@@ -40,13 +77,20 @@ export function CartProvider({ children }) {
           item.size === product.size
       );
       if (existing) {
-        return prev.map((item) =>
-          item.cartId === existing.cartId
-            ? { ...item, quantity: item.quantity + product.quantity }
-            : item
-        );
+        const maxStock = Number(existing.maxStock ?? product.maxStock);
+        return prev.map((item) => {
+          if (item.cartId !== existing.cartId) return item;
+          const nextQty = Number(item.quantity) + Number(product.quantity || 0);
+          if (Number.isFinite(maxStock) && maxStock > 0) {
+            return { ...item, quantity: Math.min(nextQty, maxStock), maxStock };
+          }
+          return { ...item, quantity: nextQty };
+        });
       }
-      return [...prev, { ...product, cartId: `cart_${Date.now()}_${Math.random()}` }];
+      const maxStock = Number(product.maxStock);
+      const initialQty = Number(product.quantity || 1);
+      const safeQty = Number.isFinite(maxStock) && maxStock > 0 ? Math.min(initialQty, maxStock) : initialQty;
+      return [...prev, { ...product, quantity: safeQty, cartId: `cart_${Date.now()}_${Math.random()}` }];
     });
   }, []);
 
@@ -57,7 +101,14 @@ export function CartProvider({ children }) {
   const updateQuantity = useCallback((cartId, quantity) => {
     if (quantity < 1) return;
     setCartItems((prev) =>
-      prev.map((item) => (item.cartId === cartId ? { ...item, quantity } : item))
+      prev.map((item) => {
+        if (item.cartId !== cartId) return item;
+        const maxStock = Number(item.maxStock);
+        if (Number.isFinite(maxStock) && maxStock > 0) {
+          return { ...item, quantity: Math.min(Number(quantity), maxStock) };
+        }
+        return { ...item, quantity: Number(quantity) };
+      })
     );
   }, []);
 
@@ -65,9 +116,9 @@ export function CartProvider({ children }) {
     setCartItems([]);
     setShippingDetails(null);
     setShippingMethod(null);
-    localStorage.removeItem('chronos_cart');
+    localStorage.removeItem(cartKey);
     localStorage.removeItem('chronos_shipping');
-  }, []);
+  }, [cartKey]);
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 

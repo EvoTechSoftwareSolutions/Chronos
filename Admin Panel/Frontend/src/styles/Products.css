@@ -36,6 +36,7 @@
   border-radius: 12px;
   border: 1px solid #333;
   padding: 20px;
+  overflow: hidden;
 }
 
 .table-filters {
@@ -154,6 +155,8 @@
   color: #fff;
   display: flex;
   flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-header {
@@ -335,6 +338,7 @@
 
   .products-table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .products-table {
@@ -351,6 +355,20 @@
 
   .split-content {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-body {
+    padding: 18px;
+  }
+
+  .modal-header {
+    padding: 15px 18px;
+  }
+
+  .modal-footer {
+    padding: 15px 18px;
   }
 }
 

@@ -131,6 +131,9 @@ export function initializeSchema(db) {
           if (!cols.includes("product_code")) {
             db.query("ALTER TABLE products ADD COLUMN product_code VARCHAR(50) UNIQUE AFTER name");
           }
+          if (!cols.includes("inventory_tiers")) {
+            db.query("ALTER TABLE products ADD COLUMN inventory_tiers JSON AFTER images");
+          }
         }
       });
     }
