@@ -406,17 +406,7 @@ function ProductDetail() {
               {product.description || (DESCRIPTIONS[product.category?.toLowerCase()] || DESCRIPTIONS.luxury)}
             </p>
 
-            {/* Feature Tags */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-2">
-              {['Carbon Fiber', 'Super-LumiNova', 'Gold Strap'].map(tag => (
-                <div
-                  key={tag}
-                  className="text-[10px] border border-white/10 text-gray-400 px-8 py-3 rounded-xl tracking-widest font-bold bg-white/[0.02] hover:border-[#D4AF37]/40 transition-all cursor-default"
-                >
-                  {tag}
-                </div>
-              ))}
-            </div>
+
 
             <div className="h-px bg-white/5 my-4" />
 

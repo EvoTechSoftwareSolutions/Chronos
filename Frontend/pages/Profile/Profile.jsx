@@ -53,7 +53,9 @@ export default function Profile() {
   };
 
   const fetchUserOrders = () => {
-    axios.get(`http://localhost:5000/api/user/orders?email=${user.email}`)
+    const url = `http://localhost:5000/api/user/orders?email=${user.email}&t=${Date.now()}`;
+    console.log("Fetching orders from:", url);
+    axios.get(url)
       .then(res => {
         if (res.data.success) {
           const mapped = res.data.orders.map(o => {

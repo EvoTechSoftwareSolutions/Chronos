@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import { useModal } from '../context/ModalContext';
-import { Search, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Search, Plus, Edit2, X, CheckCircle2, XCircle } from 'lucide-react';
 import '../styles/Customers.css';
 import { apiFetch } from '../utils/api';
 
@@ -17,6 +17,7 @@ export default function Customers() {
   const [saving, setSaving] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewStatus, setViewStatus] = useState('all');
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     email: '',
@@ -82,13 +83,33 @@ export default function Customers() {
     setIsAddEditModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this customer?")) {
-      apiFetch(`/api/admin/customers/${id}`, { method: 'DELETE' })
-        .then(res => res.json())
-        .then(() => fetchCustomers())
-        .catch(err => console.error('Delete error:', err));
-    }
+  const handleToggleStatus = (id, currentStatus) => {
+    const newStatus = !currentStatus;
+    const action = newStatus ? 'activate' : 'deactivate';
+    
+    apiFetch(`/api/admin/customers/${id}/toggle-status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: newStatus })
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success || json.message) {
+          fetchCustomers();
+          showStatusModal({
+            type: 'success',
+            title: 'STATUS UPDATED',
+            message: `Customer has been ${action}d successfully.`
+          });
+        }
+      })
+      .catch(err => {
+        console.error('Status toggle error:', err);
+        showStatusModal({
+          type: 'error',
+          title: 'STATUS UPDATE FAILED',
+          message: err.message
+        });
+      });
   };
 
   const handleSaveCustomer = () => {
@@ -132,11 +153,17 @@ export default function Customers() {
       });
   };
 
-  const filteredCustomers = data.customers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.customer_id && c.customer_id.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredCustomers = data.customers.filter(c => {
+    const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.customer_id && c.customer_id.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchStatus = viewStatus === 'all' || 
+                        (viewStatus === 'active' && c.is_active) || 
+                        (viewStatus === 'inactive' && !c.is_active);
+                        
+    return matchSearch && matchStatus;
+  });
 
   if (loading) return <div className="loading">Loading Customers...</div>;
 
@@ -170,6 +197,13 @@ export default function Customers() {
       </div>
 
       <div className="customers-table-container">
+        <div className="table-header-actions" style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid #1a1a1a' }}>
+          <select className="filter-select" value={viewStatus} onChange={(e) => setViewStatus(e.target.value)} style={{ padding: '8px 12px', background: '#0a0a0a', border: '1px solid #d4af37', color: '#fff', borderRadius: '4px' }}>
+            <option value="all">Show: All Customers</option>
+            <option value="active">Show: Active Only</option>
+            <option value="inactive">Show: Inactive Only</option>
+          </select>
+        </div>
         <table className="customers-table">
           <thead>
             <tr>
@@ -204,8 +238,12 @@ export default function Customers() {
                       <button className="action-icn" onClick={() => openEditModal(c)}>
                         <Edit2 size={16}/>
                       </button>
-                      <button className="action-icn" onClick={() => handleDelete(c.id)}>
-                        <Trash2 size={16}/>
+                      <button 
+                        className={`action-icn ${c.is_active ? 'active' : 'inactive'}`}
+                        title={c.is_active ? 'Deactivate Customer' : 'Activate Customer'}
+                        onClick={() => handleToggleStatus(c.id, c.is_active)}
+                      >
+                        {c.is_active ? <CheckCircle2 size={16}/> : <XCircle size={16}/>}
                       </button>
                     </div>
                   </td>

@@ -22,7 +22,7 @@
 
 .orders-stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
@@ -115,6 +115,24 @@
 .action-icn.delete:hover {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
+}
+
+.action-icn.active {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+}
+.action-icn.active:hover {
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.action-icn.inactive {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+.action-icn.inactive:hover {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.15);
 }
 
 /* Modal Styles */
@@ -425,7 +443,7 @@
 
 @media (max-width: 640px) {
   .orders-stats-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .orders-table-container {

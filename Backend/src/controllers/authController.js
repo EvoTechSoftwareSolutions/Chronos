@@ -42,6 +42,12 @@ export function login(req, res) {
   db.query(sql, [email], (err, result) => {
     if (result.length > 0) {
       const user = result[0];
+
+      // Check if account is active
+      if (user.is_active === 0) {
+        return res.json({ success: false, message: "Your account has been deactivated. Please contact support." });
+      }
+
       const isMatch = bcrypt.compareSync(password, user.password || "");
       if (isMatch) {
         return res.json({
@@ -98,8 +104,11 @@ export function getProfile(req, res) {
   const { email } = req.query;
   if (!email) return res.json({ success: false, message: "Email required" });
   
-  db.query("SELECT name, email, phone, address, city, zip_code, avatar FROM users WHERE email = ?", [email], (err, result) => {
+  db.query("SELECT name, email, phone, address, city, zip_code, avatar, is_active FROM users WHERE email = ?", [email], (err, result) => {
     if (err || result.length === 0) return res.json({ success: false, message: "User not found" });
+    if (result[0].is_active === 0) {
+      return res.json({ success: false, isDeactivated: true, message: "Your account has been deactivated." });
+    }
     return res.json({ success: true, user: result[0] });
   });
 }

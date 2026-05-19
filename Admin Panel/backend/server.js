@@ -58,7 +58,7 @@ app.use('/api/admin/notifications', notificationsRoutes);
 app.use('/api/admin/profile', adminProfileRoutes);
 
 app.use((err, req, res, next) => {
-  console.error('Unhandled API error:', err.message);
+  console.error('Unhandled API error:', err.stack);
   res.status(500).json({ error: 'Internal server error' });
 });
 

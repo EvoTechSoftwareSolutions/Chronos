@@ -110,10 +110,17 @@ exports.updateCustomer = async (req, res) => {
   const { id } = req.params;
   const { name, email, orders_count, total_spent, join_date, status, initials } = req.body;
   try {
+    let is_active = 1;
+    if (status === 'Inactive') is_active = 0;
+
     await pool.query(
-      `UPDATE customers SET initials=?, name=?, email=?, orders_count=?, total_spent=?, join_date=?, status=? WHERE id=?`,
-      [initials, name, email, orders_count, total_spent, join_date, status, id]
+      `UPDATE customers SET initials=?, name=?, email=?, orders_count=?, total_spent=?, join_date=?, status=?, is_active=? WHERE id=?`,
+      [initials, name, email, orders_count, total_spent, join_date, status, is_active, id]
     );
+
+    // Sync with users table
+    await pool.query('UPDATE users SET is_active = ? WHERE email = ?', [is_active, email]);
+
     res.json({ message: 'Customer updated successfully' });
   } catch (err) {
     console.error('Customer update error:', err);
@@ -126,63 +133,45 @@ exports.deleteCustomer = async (req, res) => {
   try {
     // 1. Get the customer email to find their orders
     const [custRows] = await pool.query('SELECT email FROM customers WHERE id = ?', [id]);
-    
+
     if (custRows.length > 0) {
       const email = custRows[0].email;
-      
-      // 2. Find their orders
-      const [orderRows] = await pool.query('SELECT * FROM orders WHERE email = ?', [email]);
-      
-      for (const order of orderRows) {
-        const { id: orderId, order_status, payment_status, items } = order;
-        
-        // 3. Restore stock if needed
-        if (order_status !== 'Delivered' && order_status !== 'Shipped' && !isCanceled(order_status)) {
-          if (payment_status === 'Paid') {
-            let parsedItems = [];
-            try {
-              parsedItems = JSON.parse(items || '[]');
-            } catch (e) {}
 
-            for (const item of parsedItems) {
-              if (item.id && item.quantity) {
-                const [productRows] = await pool.query('SELECT * FROM products WHERE id = ?', [item.id]);
-                if (productRows.length > 0) {
-                  const product = productRows[0];
-                  let tiers = [];
-                  try {
-                    if (product.inventory_tiers) {
-                      tiers = typeof product.inventory_tiers === 'string' ? JSON.parse(product.inventory_tiers) : product.inventory_tiers;
-                    }
-                  } catch (e) { tiers = []; }
-
-                  if (Array.isArray(tiers) && tiers.length > 0) {
-                    addTierStock(tiers[0], item.quantity, item.strap_size || item.strapSize);
-                    await pool.query(
-                      'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ? WHERE id = ?',
-                      [item.quantity, JSON.stringify(tiers), item.id]
-                    );
-                  } else {
-                    await pool.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.id]);
-                  }
-                } else {
-                  await pool.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.id]);
-                }
-              }
-            }
-          }
-        }
-        
-        // 4. Delete the order
-        await pool.query('DELETE FROM orders WHERE id = ?', [orderId]);
-      }
+      // 2. Delete all orders for this customer — no stock restocking, no revenue adjustment
+      await pool.query('DELETE FROM orders WHERE email = ?', [email]);
     }
 
-    // 5. Finally, delete the customer
-    await pool.query(`DELETE FROM customers WHERE id=?`, [id]);
+    // 3. Delete the customer record
+    await pool.query('DELETE FROM customers WHERE id = ?', [id]);
     res.json({ message: 'Customer and their orders deleted successfully' });
   } catch (err) {
     console.error('Customer delete error:', err);
     res.status(500).json({ error: 'Failed to delete customer' });
+  }
+};
+
+exports.toggleCustomerStatus = async (req, res) => {
+  const { id } = req.params;
+  const { is_active } = req.body;
+
+  try {
+    // 1. Get the customer email
+    const [custRows] = await pool.query('SELECT email FROM customers WHERE id = ?', [id]);
+    if (custRows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    const email = custRows[0].email;
+
+    // 2. Update customers table
+    const statusStr = is_active ? 'Active' : 'Inactive';
+    await pool.query('UPDATE customers SET is_active = ?, status = ? WHERE id = ?', [is_active ? 1 : 0, statusStr, id]);
+    
+    // 3. Sync with users table
+    await pool.query('UPDATE users SET is_active = ? WHERE email = ?', [is_active ? 1 : 0, email]);
+
+    res.json({ success: true, message: `Customer has been ${is_active ? 'activated' : 'deactivated'} successfully` });
+  } catch (err) {
+    console.error('Customer toggle status error:', err);
+    res.status(500).json({ error: 'Failed to update customer status' });
   }
 };

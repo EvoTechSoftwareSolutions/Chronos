@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { X, Package, MapPin, CreditCard, ChevronRight, Eye, Edit2, Trash2 } from 'lucide-react';
+import { X, Package, MapPin, CreditCard, ChevronRight, Eye, Edit2, CheckCircle2, XCircle } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import '../styles/Orders.css';
 import { apiFetch } from '../utils/api';
@@ -11,6 +11,7 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewStatus, setViewStatus] = useState('all');
 
   const { showModal } = useModal();
 
@@ -20,6 +21,7 @@ export default function Orders() {
     apiFetch('/api/admin/orders')
       .then(res => res.json())
       .then(json => {
+        console.log("Orders Data:", json);
         setData(json);
         setLoading(false);
       })
@@ -93,55 +95,47 @@ export default function Orders() {
         });
       });
   };
-  const handleDeleteOrder = (id) => {
+  const handleToggleOrderStatus = (id, currentStatus) => {
+    const newStatus = !currentStatus;
+    const action = newStatus ? 'activate' : 'deactivate';
     const cleanId = id.replace('#', '');
-    showModal({
-      type: 'confirm',
-      title: 'Delete Order?',
-      message: `Are you sure you want to delete order ${id}? This action cannot be undone.`,
-      onConfirm: () => {
-        apiFetch(`/api/admin/orders/${cleanId}`, {
-          method: 'DELETE'
-        })
-          .then(async res => {
-            if (!res.ok) {
-              const text = await res.text();
-              throw new Error(`Server Error (${res.status}): ${text.substring(0, 100)}`);
-            }
-            return res.json();
-          })
-          .then(json => {
-            if (json.success) {
-              fetchOrders();
-              showModal({
-                type: 'success',
-                title: 'Delete Successful',
-                message: `Order ${id} has been removed permanently.`
-              });
-            } else {
-              showModal({ type: 'error', title: 'Error', message: json.message });
-            }
-          })
-          .catch(err => {
-            console.error("Delete error:", err);
-            showModal({ 
-              type: 'error', 
-              title: 'Delete Failed', 
-              message: err.message.includes('Unexpected token') 
-                ? "The server returned an invalid response. Please check the backend logs."
-                : err.message 
-            });
+    
+    apiFetch(`/api/admin/orders/${cleanId}/toggle-status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: newStatus })
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success || json.message) {
+          fetchOrders();
+          showModal({
+            type: 'success',
+            title: 'Status Updated',
+            message: `Order ${id} has been ${action}d successfully.`
           });
-      }
-    });
+        }
+      })
+      .catch(err => {
+        showModal({
+          type: 'error',
+          title: 'Status Update Failed',
+          message: err.message
+        });
+      });
   };
 
-  const filteredOrders = data?.orders?.filter(o => 
-    o?.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o?.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o?.customer_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o?.items_summary?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredOrders = data?.orders?.filter(o => {
+    const matchSearch = o?.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o?.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o?.customer_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o?.items_summary?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchStatus = viewStatus === 'all' || 
+                        (viewStatus === 'active' && o.is_active) || 
+                        (viewStatus === 'inactive' && !o.is_active);
+    
+    return matchSearch && matchStatus;
+  }) || [];
 
   if (loading) return <div className="loading">Loading Orders...</div>;
 
@@ -174,6 +168,13 @@ export default function Orders() {
       </div>
 
       <div className="orders-table-container">
+        <div className="table-header-actions" style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid #1a1a1a' }}>
+          <select className="filter-select" value={viewStatus} onChange={(e) => setViewStatus(e.target.value)} style={{ padding: '8px 12px', background: '#0a0a0a', border: '1px solid #d4af37', color: '#fff', borderRadius: '4px' }}>
+            <option value="all">Show: All Orders</option>
+            <option value="active">Show: Active Only</option>
+            <option value="inactive">Show: Inactive Only</option>
+          </select>
+        </div>
         <table className="orders-table">
           <thead>
             <tr>
@@ -239,8 +240,12 @@ export default function Orders() {
                         <button className="action-icn" title="Edit" onClick={() => setSelectedOrder(order)}>
                           <Edit2 size={16} />
                         </button>
-                        <button className="action-icn delete" title="Delete" onClick={() => handleDeleteOrder(order.id)}>
-                          <Trash2 size={16} />
+                        <button 
+                          className={`action-icn ${order.is_active ? 'active' : 'inactive'}`}
+                          title={order.is_active ? 'Deactivate Order' : 'Activate Order'}
+                          onClick={() => handleToggleOrderStatus(order.id, order.is_active)}
+                        >
+                          {order.is_active ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
                         </button>
                       </div>
                   </td>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
@@ -28,8 +28,34 @@ function CartBtnIcon() {
 }
 
 function PaymentDetails() {
-  const { cartItems, clearCart, shippingDetails, shippingMethod } = useCart();
+  const { cartItems, clearCart, shippingDetails, shippingMethod, setShippingMethod } = useCart();
   const navigate = useNavigate();
+
+  // Safety Redirect: if shipping details are lost/missing, go back to shipping step
+  useEffect(() => {
+    if (!shippingDetails && cartItems.length > 0) {
+      navigate('/checkout/shipping');
+    }
+  }, [shippingDetails, cartItems.length, navigate]);
+
+  // Handle PayHere redirect cancellation
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('canceled') === 'true') {
+      const canceledOrderId = params.get('order_id');
+      if (canceledOrderId) {
+        markOrderAsDeclined(canceledOrderId, 'Payment Cancelled via Redirect');
+      }
+
+      // Remove the query param from URL without refreshing
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setDeclinePopup({
+        title: 'Payment Cancelled',
+        message: 'Your payment was not completed or the gateway was closed. If your card was declined, please verify your details and try again.',
+        icon: '❌',
+      });
+    }
+  }, []);
 
   const [paymentMethod, setPaymentMethod] = useState('Credit/Debit');
   const [cardData, setCardData] = useState({
@@ -41,6 +67,11 @@ function PaymentDetails() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const paymentProcessed = React.useRef(false);
+  const onCompletedCalled = React.useRef(false);
+
+  // Card decline popup state
+  const [declinePopup, setDeclinePopup] = useState(null); // { title, message, icon }
   
   const [savedCards, setSavedCards] = useState([]);
   const [selectedSavedCard, setSelectedSavedCard] = useState(null);
@@ -92,55 +123,128 @@ function PaymentDetails() {
     }
   }, []);
 
-  const sendOrderMails = (orderId) => {
+  const sendOrderEmail = (orderId, customerName, totalAmount, itemsText) => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const profileEmail = user.email;
-    const shipEmail = shippingDetails?.email;
+    const shippingEmail = shippingDetails?.email;
+    const profileEmail = user?.email;
     
-    // Format cart items
-    const itemsList = cartItems.map(item => 
-      `${item.quantity}x ${item.brand} ${item.name} - Rs. ${fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}`
-    ).join('\n<br>\n');
-    
-    // Address string
-    const addressStr = `${shippingDetails?.firstName} ${shippingDetails?.lastName}<br>${shippingDetails?.address}<br>${shippingDetails?.city}, ${shippingDetails?.province} ${shippingDetails?.zipCode}<br>Mobile: ${shippingDetails?.mobile}`;
+    const emailsToSend = [...new Set([shippingEmail, profileEmail])].filter(Boolean);
 
-    const sendMail = (targetEmail) => {
+    if (emailsToSend.length === 0) return;
+
+    const emailMessage = `Your order #${orderId} has been successfully placed.\n\nItems:\n${itemsText}\n\nTotal: Rs. ${fmt(totalAmount)}\n\nThank you for shopping with Chronos Luxury Watches.`;
+    
+    emailsToSend.forEach(email => {
       const templateParams = {
-        to_email: targetEmail,
-        email: targetEmail,
-        user_email: targetEmail,
-        recipient_email: targetEmail,
-        customer_name: shippingDetails?.firstName || "Valued Customer",
-        order_id: String(orderId),
-        subtotal: fmt(subtotal),
-        total: fmt(total),
-        items_list: itemsList,
-        shipping_address: addressStr
+        to_name: customerName,
+        to_email: email,
+        order_id: orderId,
+        total_amount: `Rs. ${fmt(totalAmount)}`,
+        items_list: itemsText,
+        message: emailMessage,
+        reply_to: 'support@chronos.com'
       };
 
-      emailjs.send(
-        'service_x486mx3',
-        'template_0wiujko',
-        templateParams,
-        '_VBkrk2a0KdGSbidM'
-      ).then(res => {
-        console.log("EmailJS Success:", res);
-      }).catch(err => {
-        console.error("EmailJS Error:", err);
-        alert(`EmailJS Failed: ${err.text || JSON.stringify(err)}\n\nIf you created a new EmailJS account, make sure to update the Public Key 'jRpr4VVc-GA7LLA3Z' in PaymentDetails.jsx!`);
-      });
-    };
+      emailjs.send('service_x486mx3', 'template_0wiujko', templateParams, '_VBkrk2a0KdGSbidM')
+        .then((response) => console.log(`Invoice email sent to ${email}!`, response.status, response.text))
+        .catch((err) => console.error(`Invoice email failed for ${email}...`, err));
+    });
+  };
 
-    // Send to shipping email
-    if (shipEmail) sendMail(shipEmail);
-    // Send to profile email if distinct
-    if (profileEmail && profileEmail !== shipEmail) sendMail(profileEmail);
+  const handleSuccess = (orderId, itemsListText) => {
+    if (paymentProcessed.current) return;
+    paymentProcessed.current = true;
+
+    // Update status to Paid (Local Testing Fallback)
+    markOrderAsPaid(orderId);
+
+    // Send Email Invoice
+    sendOrderEmail(orderId, shippingDetails?.firstName || 'Customer', total, itemsListText);
+
+    clearCart();
+    setLoading(false);
+    navigate(`/checkout/success/${orderId}`);
+  };
+
+  const handleSuccessSecure = (orderId, itemsListText) => {
+    if (paymentProcessed.current) return;
+    paymentProcessed.current = true;
+
+    // Send Email Invoice
+    sendOrderEmail(orderId, shippingDetails?.firstName || 'Customer', total, itemsListText);
+
+    clearCart();
+    setLoading(false);
+    navigate(`/checkout/success/${orderId}`);
+  };
+
+  // Maps a raw PayHere error string to a user-facing decline popup payload
+  const getDeclinePayload = (errorMsg) => {
+    const DECLINE_MAP = [
+      {
+        keys: ['Insufficient Fund', '51'],
+        title: 'Insufficient Funds',
+        message: 'Your card does not have enough funds to complete this purchase. Please top up your account or use a different card.',
+        icon: '💳',
+      },
+      {
+        keys: ['Limit Exceeded', '61', '65'],
+        title: 'Transaction Limit Exceeded',
+        message: 'This transaction exceeds your card\'s spending or daily limit. Please contact your bank to increase the limit, or use a different card.',
+        icon: '🚫',
+      },
+      {
+        keys: ['Do Not Honor', '05'],
+        title: 'Card Declined by Bank',
+        message: 'Your bank has declined this transaction. Please contact your bank for more information or try a different payment method.',
+        icon: '🏦',
+      },
+      {
+        keys: ['Network Error', 'timeout', 'connection'],
+        title: 'Network Error',
+        message: 'A network issue interrupted your payment. Please check your internet connection and try again.',
+        icon: '📡',
+      },
+    ];
+
+    const msg = String(errorMsg || '').toLowerCase();
+    for (const entry of DECLINE_MAP) {
+      if (entry.keys.some(k => msg.includes(k.toLowerCase()))) {
+        return entry;
+      }
+    }
+    return null; // not a known decline — fall through to plain error
+  };
+
+  const markOrderAsDeclined = async (orderId, reason) => {
+    try {
+      // Update status to 'Declined' so it persists in the database but stays hidden from admin
+      await axios.post('http://localhost:5000/api/orders/update-payment-status', {
+        order_id: orderId,
+        status: 'Declined',
+        decline_reason: reason
+      }).catch(console.error);
+    } catch (err) {
+      console.error('Error marking order as declined:', err);
+    }
+  };
+
+  const markOrderAsPaid = async (orderId) => {
+    try {
+      // Force update to 'Paid' for local testing
+      await axios.post('http://localhost:5000/api/orders/update-payment-status', {
+        order_id: orderId,
+        status: 'Paid'
+      }).catch(console.error);
+    } catch (err) {
+      console.error('Error marking order as paid:', err);
+    }
   };
 
   const handlePlaceOrder = async () => {
     setLoading(true);
     setError('');
+    paymentProcessed.current = false;
 
     try {
       // Get logged-in user from localStorage
@@ -148,32 +252,8 @@ function PaymentDetails() {
 
       const itemsListText = cartItems.map(item => `${item.quantity}x ${item.brand} ${item.name} - Rs. ${fmt((item.priceNum || parseFloat(String(item.price).replace(/[^0-9.]/g,''))) * item.quantity)}`).join('\n');
 
-      const sendOrderEmail = (orderId, customerName, totalAmount, itemsText) => {
-        const shippingEmail = shippingDetails?.email;
-        const profileEmail = user?.email;
-        
-        const emailsToSend = [...new Set([shippingEmail, profileEmail])].filter(Boolean);
+      // Order email logic moved to component scope for accessibility by handleSuccess
 
-        if (emailsToSend.length === 0) return;
-
-        const emailMessage = `Your order #${orderId} has been successfully placed.\n\nItems:\n${itemsText}\n\nTotal: Rs. ${fmt(totalAmount)}\n\nThank you for shopping with Chronos Luxury Watches.`;
-        
-        emailsToSend.forEach(email => {
-          const templateParams = {
-            to_name: customerName,
-            to_email: email,
-            order_id: orderId,
-            total_amount: `Rs. ${fmt(totalAmount)}`,
-            items_list: itemsText,
-            message: emailMessage,
-            reply_to: 'support@chronos.com'
-          };
-
-          emailjs.send('service_x486mx3', 'template_0wiujko', templateParams, '_VBkrk2a0KdGSbidM')
-            .then((response) => console.log(`Invoice email sent to ${email}!`, response.status, response.text))
-            .catch((err) => console.error(`Invoice email failed for ${email}...`, err));
-        });
-      };
 
       const payload = {
         items: cartItems.map((item) => ({
@@ -210,15 +290,15 @@ function PaymentDetails() {
             currency: 'LKR'
           });
 
-          const { hash, merchant_id } = hashRes.data;
+          const { hash, merchant_id, notify_url } = hashRes.data;
 
           // Initialize PayHere payment
           const payment = {
             sandbox: true,
             merchant_id: merchant_id,
             return_url: "http://localhost:5173/home", 
-            cancel_url: "http://localhost:5173/checkout/payment-details",
-            notify_url: "http://localhost:5000/payhere-notify",
+            cancel_url: `http://localhost:5173/checkout/payment-details?canceled=true&order_id=${orderId}`,
+            notify_url: notify_url || "http://localhost:5000/payhere-notify",
             order_id: String(orderId),
             items: "Chronos Luxury Watches Order #" + orderId,
             amount: Number(total).toFixed(2),
@@ -233,42 +313,123 @@ function PaymentDetails() {
             country: "Sri Lanka",
           };
 
-          window.payhere.onCompleted = function onCompleted(orderId) {
-            
-            axios.post('http://localhost:5000/api/orders/update-payment-status', {
-               orderId: orderId,
-               status: 'Paid'
-            }).catch(console.error);
+          let lastErrorPayload = null;
 
-            // Send Email Invoice
-            sendOrderEmail(orderId, shippingDetails?.firstName || 'Customer', total, itemsListText);
+          window.payhere.onCompleted = async function onCompleted(completedOrderId) {
+            console.log("PayHere: Payment Completed", completedOrderId);
+            onCompletedCalled.current = true; // Mark that checkout process has officially completed
+            if (paymentProcessed.current) return;
 
-            clearCart();
-            setLoading(false);
-            navigate(`/checkout/success/${orderId}`);
+            setLoading(true);
+
+            // Poll the backend to verify if the payment was securely marked as 'Paid' by the webhook
+            let checkCount = 0;
+            const maxChecks = 5; // Poll up to 5 times (5 seconds)
+
+            const checkStatusInterval = setInterval(async () => {
+              try {
+                const statusRes = await axios.get(`http://localhost:5000/api/orders/${completedOrderId}/status`);
+                const actualStatus = statusRes.data.status;
+                console.log(`[Status Poll] Checking order ${completedOrderId}: ${actualStatus}`);
+
+                if (actualStatus === "Paid") {
+                  clearInterval(checkStatusInterval);
+                  handleSuccessSecure(completedOrderId, itemsListText);
+                } else if (actualStatus === "Declined" || actualStatus === "Failed" || actualStatus === "Canceled") {
+                  clearInterval(checkStatusInterval);
+                  paymentProcessed.current = true;
+                  setLoading(false);
+                  setDeclinePopup(lastErrorPayload || {
+                    title: 'Payment Declined',
+                    message: 'Your payment was declined by the bank or cancelled. Please verify your details or try another card.',
+                    icon: '❌',
+                  });
+                }
+              } catch (e) {
+                console.error("Error polling order status:", e);
+              }
+
+              checkCount++;
+              if (checkCount >= maxChecks) {
+                clearInterval(checkStatusInterval);
+
+                // Check one final time before applying fallback
+                try {
+                  const finalRes = await axios.get(`http://localhost:5000/api/orders/${completedOrderId}/status`);
+                  const finalStatus = finalRes.data.status;
+
+                  if (finalStatus === "Paid") {
+                    handleSuccessSecure(completedOrderId, itemsListText);
+                  } else if (finalStatus === "Declined" || finalStatus === "Failed" || finalStatus === "Canceled") {
+                    paymentProcessed.current = true;
+                    setLoading(false);
+                    setDeclinePopup(lastErrorPayload || {
+                      title: 'Payment Declined',
+                      message: 'Your payment was declined by the bank or cancelled. Please verify your details or try another card.',
+                      icon: '❌',
+                    });
+                  } else {
+                    // Fallback for purely offline local testing (no Ngrok configured)
+                    console.log("[Status Poll] Webhook timed out and order is still Pending. Applying local offline success fallback...");
+                    handleSuccess(completedOrderId, itemsListText);
+                  }
+                } catch (err) {
+                  console.error("Error in final status check:", err);
+                  setLoading(false);
+                }
+              }
+            }, 1000);
           };
+
           window.payhere.onDismissed = function onDismissed() {
-            setError("Payment dismissed. Your order is pending payment. Please try again.");
+            console.log("PayHere: Payment Dismissed");
+            if (paymentProcessed.current || onCompletedCalled.current) return; // Block if checkout process completed
+            paymentProcessed.current = true;
+            
             setLoading(false);
+            setDeclinePopup(lastErrorPayload || {
+              title: 'Payment Declined',
+              message: 'Your transaction was not completed. If your card was declined, please verify your details and try again, or use a different payment method.',
+              icon: '❌',
+            });
+
+            // Background update
+            markOrderAsDeclined(orderId, lastErrorPayload ? `Payment Failed: ${lastErrorPayload.message}` : 'Payment Dismissed');
           };
+
           window.payhere.onError = function onError(error) {
-            setError("Payment error: " + error);
-            setLoading(false);
+            console.log("PayHere: Payment Error", error);
+            const errorMsg = String(error || '');
+            lastErrorPayload = getDeclinePayload(errorMsg) || {
+              title: 'Payment Declined',
+              message: errorMsg || 'Your transaction could not be processed at this time. Please verify your card details or use another payment method.',
+              icon: '❌'
+            };
           };
 
           window.payhere.startPayment(payment);
 
-        } else {
-          // Mock successful payment for Saved Cards, Apple Pay, PayPal
-          await axios.post('http://localhost:5000/api/orders/update-payment-status', {
-             orderId: orderId,
-             status: 'Paid'
-          }).catch(console.error);
+          // Fallback Monitor
+          let modalFound = false;
+          const monitorInterval = setInterval(() => {
+            if (paymentProcessed.current) {
+              clearInterval(monitorInterval);
+              return;
+            }
+            const payhereElements = document.querySelectorAll('iframe[src*="payhere"], div[id*="payhere"]');
+            if (payhereElements.length > 0) {
+              modalFound = true;
+            } else if (modalFound && payhereElements.length === 0) {
+              clearInterval(monitorInterval);
+              if (!onCompletedCalled.current) { // Block if checkout process completed
+                window.payhere.onDismissed();
+              }
+            }
+          }, 1000);
 
-          sendOrderEmail(orderId, shippingDetails?.firstName || 'Customer', total, itemsListText);
-          clearCart();
-          setLoading(false);
-          navigate(`/checkout/success/${orderId}`);
+        } else {
+          // Mock successful placement for Apple Pay/PayPal (In production, these would use their own webhooks)
+          handleSuccess(orderId, itemsListText);
         }
       } else {
         setError(res.data.message || "Order placement failed.");
@@ -299,6 +460,61 @@ function PaymentDetails() {
 
   return (
     <div className="bg-[#0B0B0B] text-white w-full min-h-screen relative overflow-x-hidden font-poppins">
+
+      {/* ── Card Decline Popup ─────────────────────────────────────────────── */}
+      {declinePopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div
+            className="relative bg-[#111111] border border-[#2a2a2a] rounded-2xl shadow-[0_0_60px_rgba(212,175,55,0.12)] max-w-md w-full p-8 flex flex-col items-center text-center"
+            style={{ animation: 'fadeInScale 0.25s ease' }}
+          >
+            {/* Gold top accent line */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[2px] bg-[#D4AF37] rounded-full" />
+
+            {/* Icon */}
+            <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-3xl mb-5 mt-2">
+              {declinePopup.icon}
+            </div>
+
+            {/* Title */}
+            <h2 className="font-playfair text-xl uppercase tracking-widest text-white mb-3">
+              {declinePopup.title}
+            </h2>
+
+            {/* Gold divider */}
+            <div className="w-10 h-[1.5px] bg-[#D4AF37] mb-4" />
+
+            {/* Message */}
+            <p className="text-gray-400 text-sm leading-relaxed mb-8 max-w-xs">
+              {declinePopup.message}
+            </p>
+
+            {/* Actions */}
+            <div className="flex gap-4 w-full">
+              <button
+                onClick={() => { setDeclinePopup(null); navigate('/home'); }}
+                className="flex-1 border border-[#2a2a2a] text-gray-400 hover:border-[#D4AF37] hover:text-[#D4AF37] py-3 rounded-lg text-xs uppercase tracking-widest transition-all duration-300"
+              >
+                Back to Home
+              </button>
+              <button
+                onClick={() => setDeclinePopup(null)}
+                className="flex-[1.5] bg-[#D4AF37] hover:bg-[#c9a430] text-black font-semibold py-3 rounded-lg text-xs uppercase tracking-widest transition-all duration-300"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+
+          <style>{`
+            @keyframes fadeInScale {
+              from { opacity: 0; transform: scale(0.92); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>
+      )}
+
       <Navbar />
 
       {/* Background Decor */}

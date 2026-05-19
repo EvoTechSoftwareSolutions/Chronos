@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 
 exports.getDashboardStats = async (req, res) => {
+  console.log("[Admin API] Fetching dashboard stats...");
   try {
     // 1. Core Stats
     const [revResult] = await pool.query(
@@ -8,33 +9,34 @@ exports.getDashboardStats = async (req, res) => {
     );
     const totalRevenue = revResult[0].total_revenue || 0;
 
-    const [ordResult] = await pool.query('SELECT COUNT(*) as total_orders FROM orders WHERE payment_status = "Paid"');
+    const [ordResult] = await pool.query('SELECT COUNT(*) as total_orders FROM orders WHERE is_active = 1 AND payment_status != "Declined"');
     const totalOrders = ordResult[0].total_orders;
 
-    const [custResult] = await pool.query('SELECT COUNT(*) as total_customers FROM customers');
+    const [custResult] = await pool.query('SELECT COUNT(*) as total_customers FROM customers WHERE is_active = 1');
     const totalCustomers = custResult[0].total_customers;
 
-    const [prodResult] = await pool.query('SELECT COUNT(*) as total_products FROM products');
+    const [prodResult] = await pool.query('SELECT COUNT(*) as total_products FROM products WHERE is_active = 1');
     const totalProducts = prodResult[0].total_products;
 
-    // 2. Recent Orders — joined via email since user_id may be null
+    // 2. Recent Orders
     const [recentOrdersRows] = await pool.query(`
       SELECT 
         o.id,
         COALESCE(c.name, CONCAT(o.first_name, ' ', o.last_name), o.email, 'Guest') as customer,
         o.items as product_json,
         o.total as amount,
-        COALESCE(o.order_status, 'Pending') as status
+        COALESCE(o.order_status, 'Pending') as status,
+        o.payment_status
       FROM orders o
       LEFT JOIN customers c ON o.email = c.email
-      WHERE o.payment_status = 'Paid'
+      WHERE o.payment_status != 'Declined'
       ORDER BY o.created_at DESC
       LIMIT 5
     `);
 
-    // 3. Top Products — parse JSON items from all orders
+    // 3. Top Products
     const [itemRows] = await pool.query(
-      'SELECT items FROM orders WHERE payment_status = "Paid" AND (order_status != "Canceled" OR order_status IS NULL) LIMIT 200'
+      'SELECT items FROM orders WHERE (order_status != "Canceled" OR order_status IS NULL) LIMIT 200'
     );
     const productSales = {};
     itemRows.forEach(row => {
@@ -56,7 +58,7 @@ exports.getDashboardStats = async (req, res) => {
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
 
-    // 4. Revenue Trend — last 12 months grouped by month
+    // 4. Revenue Trend
     const [trendRows] = await pool.query(`
       SELECT 
         DATE_FORMAT(created_at, '%b') as month,

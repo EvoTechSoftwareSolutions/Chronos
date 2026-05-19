@@ -152,8 +152,10 @@ export function createAdminProduct(req, res) {
   const firstImageUrl = imageUrls.length > 0 ? imageUrls[0] : null;
   const imagesJson = JSON.stringify(imageUrls);
 
+  const finalPrice = "Rs " + Number(String(price).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
   const sql = `INSERT INTO products (name, price, stock_quantity, brand, category, color, strap_size, description, image_url, images) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-  const values = [name, "$" + Number(price).toLocaleString(), Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson];
+  const values = [name, finalPrice, Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson];
 
   db.query(sql, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -183,8 +185,10 @@ export function updateAdminProduct(req, res) {
   const firstImageUrl = combinedImages.length > 0 ? combinedImages[0] : null;
   const imagesJson = JSON.stringify(combinedImages);
 
+  const finalPrice = "Rs " + Number(String(price).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
   const sql = `UPDATE products SET name=?, price=?, stock_quantity=?, brand=?, category=?, color=?, strap_size=?, description=?, image_url=?, images=? WHERE id=?`;
-  const values = [name, "$" + Number(price).toLocaleString(), Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson, id];
+  const values = [name, finalPrice, Number(stock_quantity), brand, category, color, strap_size, description, firstImageUrl, imagesJson, id];
   db.query(sql, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });

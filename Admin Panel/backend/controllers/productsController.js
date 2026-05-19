@@ -377,7 +377,21 @@ exports.adjustTierStock = async (req, res) => {
     tier.stock[strapSize] = nextQty;
 
     const newTotalStock = recomputeTotalStockFromTiers(tiers);
-    await pool.query('UPDATE products SET stock_quantity = ?, inventory_tiers = ? WHERE id = ?', [newTotalStock, JSON.stringify(tiers), id]);
+
+    // Recalculate active price from tiers
+    let activePrice = product.price;
+    let priceSet = false;
+    for (const t of tiers) {
+      if (sumTierStock(t.stock) > 0) {
+        activePrice = t.price;
+        priceSet = true;
+        break;
+      }
+    }
+    if (!priceSet && tiers.length > 0) activePrice = tiers[tiers.length - 1].price;
+    const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
+    await pool.query('UPDATE products SET stock_quantity = ?, inventory_tiers = ?, price = ? WHERE id = ?', [newTotalStock, JSON.stringify(tiers), finalPrice, id]);
 
     res.json({ success: true, message: 'Tier stock adjusted', stock_quantity: newTotalStock });
   } catch (err) {
@@ -394,5 +408,18 @@ exports.deleteProduct = async (req, res) => {
   } catch (err) {
     console.error('Products delete error:', err);
     res.status(500).json({ error: 'Failed to delete product' });
+  }
+};
+
+exports.toggleProductStatus = async (req, res) => {
+  const { id } = req.params;
+  const { is_active } = req.body;
+
+  try {
+    await pool.query('UPDATE products SET is_active = ? WHERE id = ?', [is_active ? 1 : 0, id]);
+    res.json({ success: true, message: `Product has been ${is_active ? 'activated' : 'deactivated'} successfully` });
+  } catch (err) {
+    console.error('Product toggle status error:', err);
+    res.status(500).json({ error: 'Failed to update product status' });
   }
 };

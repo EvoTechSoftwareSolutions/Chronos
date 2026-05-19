@@ -39,11 +39,15 @@ function Login() {
         }, 2000);
 
       } else {
-        setMessage("Invalid email or password");
+        setMessage(res.data.message || "Invalid email or password");
         setIsSuccess(false);
       }
-    } catch {
-      setMessage("Server error or Invalid Credentials");
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.message) {
+        setMessage(error.response.data.message);
+      } else {
+        setMessage("Server error or Invalid Credentials");
+      }
       setIsSuccess(false);
     }
   };
@@ -63,6 +67,18 @@ function Login() {
 
         const user = userInfo.data;
 
+        // Check active status before logging in
+        try {
+          const profileRes = await axios.get(`http://localhost:5000/api/user/profile?email=${user.email}`);
+          if (profileRes.data.isDeactivated) {
+            setMessage("Your account has been deactivated. Please contact support.");
+            setIsSuccess(false);
+            return;
+          }
+        } catch (err) {
+          console.error("Failed to check profile status during Google Login", err);
+        }
+
         // Store user in localStorage for persistence across sessions
         localStorage.setItem("user", JSON.stringify({ name: user.name, email: user.email }));
         window.dispatchEvent(new Event("auth-changed"));
@@ -74,7 +90,7 @@ function Login() {
           navigate("/home");
         }, 1500);
 
-      } catch {
+      } catch (err) {
         setMessage("Google Login Failed");
         setIsSuccess(false);
       }

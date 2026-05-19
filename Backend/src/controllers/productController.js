@@ -138,6 +138,7 @@ export function getAllProducts(req, res) {
            COALESCE(AVG(r.rating), 0) as feedback_rate
     FROM products p
     LEFT JOIN reviews r ON p.id = r.product_id
+    WHERE p.is_active = 1
     GROUP BY p.id
     ORDER BY p.created_at DESC
   `;
@@ -202,7 +203,7 @@ export function searchProducts(req, res) {
            COALESCE(AVG(r.rating), 0) as feedback_rate
     FROM products p
     LEFT JOIN reviews r ON p.id = r.product_id
-    WHERE p.name LIKE ? OR p.brand LIKE ? OR p.category LIKE ?
+    WHERE p.is_active = 1 AND (p.name LIKE ? OR p.brand LIKE ? OR p.category LIKE ?)
     GROUP BY p.id
   `;
   const searchTerm = `%${query}%`;
@@ -237,7 +238,7 @@ export function getProductById(req, res) {
   `;
   db.query(sql, [id], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
-    if (result.length === 0) return res.status(404).json({ message: "Product not found" });
+    if (result.length === 0 || result[0].is_active === 0) return res.status(404).json({ message: "Product not found" });
 
     const p = processInventoryTiers(result[0]);
     res.json({

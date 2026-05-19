@@ -22,6 +22,7 @@ router.post('/', upload.array('images', 5), validateProduct, productsController.
 router.put('/:id', upload.array('images', 5), validateProduct, productsController.updateProduct);
 router.post('/:id/add-stock', productsController.addStockBatch);
 router.patch('/:id/adjust-tier-stock', productsController.adjustTierStock);
+router.patch('/:id/toggle-status', productsController.toggleProductStatus);
 router.delete('/:id', productsController.deleteProduct);
 
 module.exports = router;

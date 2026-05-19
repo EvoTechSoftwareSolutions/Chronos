@@ -144,3 +144,73 @@
   border-radius: 6px;
   font-weight: 500;
 }
+
+@media (max-width: 1024px) {
+  .profile-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .profile-tabs {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .form-group input,
+  .form-group textarea {
+    padding: 10px 12px;
+  }
+
+  .profile-tabs {
+    flex-direction: row;
+    width: 100%;
+    gap: 5px;
+  }
+
+  .tab-btn {
+    text-align: center;
+    padding: 8px 10px;
+    font-size: 13px;
+    flex: 1;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+  }
+
+  .tab-btn.active {
+    border-left: none;
+    border-bottom: 2px solid #d4af37;
+  }
+
+  .profile-content-card {
+    padding: 15px;
+  }
+
+  .card-header {
+    margin-bottom: 15px;
+  }
+
+  .bio-group {
+    margin-bottom: 15px;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    gap: 10px;
+  }
+  
+  .cancel-btn, .save-btn {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+  }
+}

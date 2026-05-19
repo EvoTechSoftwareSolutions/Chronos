@@ -6,7 +6,7 @@
 
 .customers-stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
@@ -129,6 +129,28 @@
 }
 .action-icn:hover {
   color: #d4af37;
+}
+
+.action-icn.active {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+  border-radius: 6px;
+  padding: 4px;
+}
+.action-icn.active:hover {
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.action-icn.inactive {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 6px;
+  padding: 4px;
+}
+.action-icn.inactive:hover {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.15);
 }
 
 /* Modal Styling */
@@ -272,7 +294,7 @@
 
 @media (max-width: 640px) {
   .customers-stats-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

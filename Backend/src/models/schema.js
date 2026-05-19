@@ -51,6 +51,9 @@ export function initializeSchema(db) {
           if (!cols.includes("customer_id")) {
             db.query("ALTER TABLE orders ADD COLUMN customer_id VARCHAR(50) AFTER id");
           }
+          if (!cols.includes("is_active")) {
+            db.query("ALTER TABLE orders ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1");
+          }
         }
       });
     }
@@ -86,6 +89,9 @@ export function initializeSchema(db) {
           }
           if (!cols.includes("zip_code")) {
             db.query("ALTER TABLE users ADD COLUMN zip_code VARCHAR(20)");
+          }
+          if (!cols.includes("is_active")) {
+            db.query("ALTER TABLE users ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1");
           }
         }
       });
@@ -134,6 +140,9 @@ export function initializeSchema(db) {
           if (!cols.includes("inventory_tiers")) {
             db.query("ALTER TABLE products ADD COLUMN inventory_tiers JSON AFTER images");
           }
+          if (!cols.includes("is_active")) {
+            db.query("ALTER TABLE products ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1");
+          }
         }
       });
     }
@@ -173,6 +182,9 @@ export function initializeSchema(db) {
           const cols = result.map((r) => r.Field);
           if (!cols.includes("customer_id")) {
             db.query("ALTER TABLE customers ADD COLUMN customer_id VARCHAR(50) UNIQUE AFTER id");
+          }
+          if (!cols.includes("is_active")) {
+            db.query("ALTER TABLE customers ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1");
           }
         }
       });

@@ -1,8 +1,8 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { CartProvider } from "./context/CartContext";
-import { PopupProvider } from "./context/PopupContext";
+import { PopupProvider, usePopup } from "./context/PopupContext";
 import PopupModal from "./components/PopupModal";
 
 import Register from "./pages/Register/Register";
@@ -32,7 +32,6 @@ function getLoggedIn() {
   }
 }
 
-// Redirects unauthenticated users to /login
 function RequireUser({ children }) {
   const [authed, setAuthed] = React.useState(getLoggedIn);
 
@@ -48,6 +47,30 @@ function RequireUser({ children }) {
 
   if (!authed) return <Navigate to="/login" replace />;
   return children;
+}
+
+function AuthStatusChecker() {
+  const location = useLocation();
+  const { showAlert } = usePopup();
+
+  React.useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user.email) {
+      fetch(`http://localhost:5000/api/user/profile?email=${user.email}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.isDeactivated) {
+            localStorage.removeItem("user");
+            localStorage.removeItem("cart");
+            window.dispatchEvent(new Event("auth-changed"));
+            showAlert("Account Suspended", "Your account has been deactivated. Please contact support.", "error");
+          }
+        })
+        .catch((err) => console.error("Status check error:", err));
+    }
+  }, [location.pathname, showAlert]);
+
+  return null;
 }
 
 // Redirects already-logged-in users away from auth pages (login / register)
@@ -76,6 +99,7 @@ function App() {
       <GoogleOAuthProvider clientId="90872154996-uovdvfs99noj5vm4iukv93lomlahks4f.apps.googleusercontent.com">
         <Router>
           <ScrollToTop />
+          <AuthStatusChecker />
           <Routes>
             {/* Auth pages — redirect logged-in users away */}
             <Route path="/" element={<RedirectIfLoggedIn><Register /></RedirectIfLoggedIn>} />

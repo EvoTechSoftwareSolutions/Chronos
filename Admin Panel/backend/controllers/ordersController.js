@@ -136,9 +136,26 @@ async function deductProductStockFifoByTier({ productId, requestedQty, strapSize
 
   // Keep totals aligned with tier data
   const newTotal = recomputeTotalStockFromTiers(tiers);
-  await pool.query('UPDATE products SET stock_quantity = ?, inventory_tiers = ? WHERE id = ?', [
+
+  // Recalculate active price from tiers
+  let activePrice = product.price;
+  let priceSet = false;
+  for (const t of tiers) {
+    if (sumTierStockValue(t.stock) > 0) {
+      activePrice = t.price;
+      priceSet = true;
+      break;
+    }
+  }
+  if (!priceSet && tiers.length > 0) {
+    activePrice = tiers[tiers.length - 1].price;
+  }
+  const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
+  await pool.query('UPDATE products SET stock_quantity = ?, inventory_tiers = ?, price = ? WHERE id = ?', [
     newTotal,
     JSON.stringify(tiers),
+    finalPrice,
     productId,
   ]);
 
@@ -146,6 +163,7 @@ async function deductProductStockFifoByTier({ productId, requestedQty, strapSize
 }
 
 exports.getOrders = async (req, res) => {
+  console.log("[Admin API] Fetching orders...");
   try {
     const [orders] = await pool.query(`
       SELECT 
@@ -153,6 +171,7 @@ exports.getOrders = async (req, res) => {
         COALESCE(c.name, CONCAT(o.first_name, ' ', o.last_name)) as customer_name
       FROM orders o
       LEFT JOIN customers c ON o.email = c.email
+      WHERE o.payment_status != 'Declined'
       ORDER BY o.created_at DESC
       LIMIT 50
     `);
@@ -164,6 +183,7 @@ exports.getOrders = async (req, res) => {
         SUM(CASE WHEN order_status = 'Shipped' THEN 1 ELSE 0 END) as shippedCount,
         SUM(CASE WHEN order_status = 'Delivered' THEN 1 ELSE 0 END) as deliveredCount
       FROM orders
+      WHERE payment_status != 'Declined'
     `);
 
     res.status(200).json({
@@ -214,10 +234,19 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    // If payment is being set to Paid (from non-Paid), trigger paid side effects:
-    // - Deduct stock (FIFO tier per strap size)
-    // - Update customer revenue (orders_count/total_spent)
-    if (payment_status && isPaid(nextPaymentStatus) && !isPaid(order.payment_status)) {
+    // --- Stock and Revenue Deduction Logic (Re-activating a paid order or marking as Paid) ---
+    const wasCanceled = isCanceled(order.order_status);
+    const isNowActive = !isCanceled(nextOrderStatus);
+    const wasPaid = isPaid(order.payment_status);
+    const isNowPaid = isPaid(nextPaymentStatus);
+
+    // DEDUCT stock if:
+    // 1. Payment status changed to 'Paid' while order was already active
+    // 2. Order status changed from 'Canceled' to active while payment was already 'Paid'
+    // 3. BOTH changed simultaneously to Paid and Active
+    const shouldDeduct = (isNowPaid && !wasPaid && isNowActive) || (isNowPaid && wasCanceled && isNowActive);
+
+    if (shouldDeduct) {
       let parsedItems = [];
       try { parsedItems = JSON.parse(order.items || '[]'); } catch (e) {}
 
@@ -234,7 +263,10 @@ exports.updateOrderStatus = async (req, res) => {
         item.deducted_quantity = deductedTotal;
       }
 
-      await pool.query('UPDATE orders SET items = ? WHERE id = ?', [JSON.stringify(parsedItems), cleanId]);
+      // Update the items in the order object for later queries in this function, 
+      // and persist to DB.
+      order.items = JSON.stringify(parsedItems);
+      await pool.query('UPDATE orders SET items = ? WHERE id = ?', [order.items, cleanId]);
 
       // Update customer revenue (if email exists)
       if (order.email) {
@@ -245,11 +277,15 @@ exports.updateOrderStatus = async (req, res) => {
       }
     }
 
-    // 2. If changing to Canceled/Cancelled and it wasn't canceled before, restore stock and deduct revenue
-    if (isCanceled(nextOrderStatus) && !isCanceled(order.order_status)) {
-      // Only restore if it was Paid (because only Paid orders deduct stock/add revenue in this system)
-      // And only if it wasn't already delivered/shipped
-      if (order.order_status !== 'Delivered' && order.order_status !== 'Shipped' && order.payment_status === 'Paid') {
+    // --- Stock and Revenue Restoration Logic (Canceling a paid order) ---
+    // RESTORE stock if:
+    // 1. Order status changed to 'Canceled' AND it was previously Paid (and not already Canceled)
+    // 2. OR Payment status changed FROM 'Paid' to something else (though this is rare in admin)
+    const shouldRestore = (!wasCanceled && isCanceled(nextOrderStatus) && isNowPaid) || (wasPaid && !isNowPaid && !wasCanceled);
+
+    if (shouldRestore) {
+      // Only restore if it wasn't already delivered/shipped (optional safety, keeping as per previous logic)
+      if (order.order_status !== 'Delivered' && order.order_status !== 'Shipped') {
         let parsedItems = [];
         try { parsedItems = JSON.parse(order.items || '[]'); } catch (e) {}
 
@@ -268,10 +304,10 @@ exports.updateOrderStatus = async (req, res) => {
 
               if (Array.isArray(tiers) && tiers.length > 0) {
                 // Restore to the exact tiers that were consumed (if tracked), otherwise fall back to first tier.
-                const allocations = Array.isArray(item.stock_allocations) ? item.stock_allocations : null;
-                if (allocations && allocations.length > 0) {
+                const itemAllocations = item.stock_allocations || item.stockAllocations;
+                if (itemAllocations && itemAllocations.length > 0) {
                   let restored = 0;
-                  for (const a of allocations) {
+                  for (const a of itemAllocations) {
                     const tierIndex = Number(a.tierIndex);
                     const qty = Number(a.quantity) || 0;
                     const size = a.strapSize || item.strap_size || item.strapSize;
@@ -280,15 +316,43 @@ exports.updateOrderStatus = async (req, res) => {
                     addTierStock(tiers[tierIndex], qty, size);
                     restored += qty;
                   }
+
+                  // Recalculate active price from tiers
+                  let activePrice = product.price;
+                  let priceSet = false;
+                  for (const t of tiers) {
+                    if (sumTierStockValue(t.stock) > 0) {
+                      activePrice = t.price;
+                      priceSet = true;
+                      break;
+                    }
+                  }
+                  if (!priceSet && tiers.length > 0) activePrice = tiers[tiers.length - 1].price;
+                  const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
                   await pool.query(
-                    'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ? WHERE id = ?',
-                    [restored, JSON.stringify(tiers), item.id]
+                    'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ?, price = ? WHERE id = ?',
+                    [restored, JSON.stringify(tiers), finalPrice, item.id]
                   );
                 } else {
                   addTierStock(tiers[0], item.quantity, item.strap_size || item.strapSize);
+
+                  // Recalculate active price from tiers
+                  let activePrice = product.price;
+                  let priceSet = false;
+                  for (const t of tiers) {
+                    if (sumTierStockValue(t.stock) > 0) {
+                      activePrice = t.price;
+                      priceSet = true;
+                      break;
+                    }
+                  }
+                  if (!priceSet && tiers.length > 0) activePrice = tiers[tiers.length - 1].price;
+                  const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
                   await pool.query(
-                    'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ? WHERE id = ?',
-                    [item.quantity, JSON.stringify(tiers), item.id]
+                    'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ?, price = ? WHERE id = ?',
+                    [item.quantity, JSON.stringify(tiers), finalPrice, item.id]
                   );
                 }
               } else {
@@ -331,80 +395,15 @@ exports.deleteOrder = async (req, res) => {
   console.log(`[Admin API] Deleting Order. ID: ${id} -> ${cleanId}`);
 
   try {
-    // 1. Get the order first to check its status
     const [rows] = await pool.query('SELECT * FROM orders WHERE id = ?', [cleanId]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    const order = rows[0];
-    const { order_status, payment_status, items, email, total } = order;
-
-    // 2. If it's not delivered, shipped, or already canceled, restore stock and adjust customer revenue
-    if (order_status !== 'Delivered' && order_status !== 'Shipped' && !isCanceled(order_status)) {
-      if (payment_status === 'Paid') {
-        // Restore stock
-        let parsedItems = [];
-        try {
-          parsedItems = JSON.parse(items || '[]');
-        } catch (e) {}
-
-        for (const item of parsedItems) {
-          if (item.id && item.quantity) {
-            // Fetch product to get inventory_tiers
-            const [productRows] = await pool.query('SELECT * FROM products WHERE id = ?', [item.id]);
-            if (productRows.length > 0) {
-              const product = productRows[0];
-              let tiers = [];
-              try {
-                if (product.inventory_tiers) {
-                  tiers = typeof product.inventory_tiers === 'string' ? JSON.parse(product.inventory_tiers) : product.inventory_tiers;
-                }
-              } catch (e) { console.error("Restore stock parse error", e); }
-
-              if (Array.isArray(tiers) && tiers.length > 0) {
-                // Restore to the exact tiers that were consumed (if tracked), otherwise fall back to first tier.
-                const allocations = Array.isArray(item.stock_allocations) ? item.stock_allocations : null;
-                if (allocations && allocations.length > 0) {
-                  let restored = 0;
-                  for (const a of allocations) {
-                    const tierIndex = Number(a.tierIndex);
-                    const qty = Number(a.quantity) || 0;
-                    const size = a.strapSize || item.strap_size || item.strapSize;
-                    if (qty <= 0) continue;
-                    if (!ensureTierExists(tiers, tierIndex)) continue;
-                    addTierStock(tiers[tierIndex], qty, size);
-                    restored += qty;
-                  }
-                  await pool.query(
-                    'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ? WHERE id = ?',
-                    [restored, JSON.stringify(tiers), item.id]
-                  );
-                } else {
-                  addTierStock(tiers[0], item.quantity, item.strap_size || item.strapSize);
-                  await pool.query(
-                    'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ? WHERE id = ?',
-                    [item.quantity, JSON.stringify(tiers), item.id]
-                  );
-                }
-              } else {
-                await pool.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.id]);
-              }
-            }
-          }
-        }
-
-        // Adjust customer revenue
-        if (email) {
-          await pool.query('UPDATE customers SET orders_count = GREATEST(0, orders_count - 1), total_spent = GREATEST(0, total_spent - ?) WHERE email = ?', [total, email]);
-        }
-      }
-    }
-
-    // 3. Delete the order
+    // Delete only — no stock restocking, no revenue adjustment
     const [result] = await pool.query('DELETE FROM orders WHERE id = ?', [cleanId]);
     console.log(`[Admin API] Delete result:`, result);
-    
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
@@ -413,5 +412,24 @@ exports.deleteOrder = async (req, res) => {
   } catch (err) {
     console.error('[Admin API] Order deletion error:', err);
     res.status(500).json({ error: 'Failed to delete order', detail: err.message });
+  }
+};
+
+exports.toggleOrderStatus = async (req, res) => {
+  const { id } = req.params;
+  const { is_active } = req.body;
+  const cleanId = id.replace('#', '');
+
+  try {
+    const [result] = await pool.query('UPDATE orders SET is_active = ? WHERE id = ?', [is_active ? 1 : 0, cleanId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json({ success: true, message: `Order has been ${is_active ? 'activated' : 'deactivated'} successfully` });
+  } catch (err) {
+    console.error('[Admin API] Order toggle status error:', err);
+    res.status(500).json({ error: 'Failed to update order status' });
   }
 };

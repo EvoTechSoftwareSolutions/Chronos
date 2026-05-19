@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, X, Upload, PackagePlus } from 'lucide-react';
+import { Search, Plus, Edit2, X, Upload, PackagePlus, CheckCircle2, XCircle } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import Header from '../components/Header';
 
@@ -26,6 +26,7 @@ export default function Products() {
 
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+  const [viewStatus, setViewStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [newProduct, setNewProduct] = useState({
@@ -215,13 +216,33 @@ export default function Products() {
       });
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      apiFetch(`/api/admin/products/${id}`, { method: 'DELETE' })
-        .then(res => res.json())
-        .then(() => fetchProducts())
-        .catch(err => console.error('Delete error:', err));
-    }
+  const handleToggleStatus = (id, currentStatus) => {
+    const newStatus = !currentStatus;
+    const action = newStatus ? 'activate' : 'deactivate';
+    
+    apiFetch(`/api/admin/products/${id}/toggle-status`, { 
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: newStatus })
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success || json.message) {
+          fetchProducts();
+          showStatusModal({
+            type: 'success',
+            title: 'STATUS UPDATED',
+            message: `Product has been ${action}d successfully.`
+          });
+        }
+      })
+      .catch(err => {
+        console.error('Status toggle error:', err);
+        showStatusModal({
+          type: 'error',
+          title: 'STATUS UPDATE FAILED',
+          message: err.message
+        });
+      });
   };
 
   const handleSaveProduct = () => {
@@ -363,10 +384,13 @@ export default function Products() {
   const filteredProducts = data.products?.filter(p => {
     const matchCategory = filterCategory === '' || p.category === filterCategory;
     const matchBrand = filterBrand === '' || p.brand === filterBrand;
+    const matchStatus = viewStatus === 'all' || 
+                        (viewStatus === 'active' && p.is_active) || 
+                        (viewStatus === 'inactive' && !p.is_active);
     const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         (p.brand && p.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
                         (p.product_code && p.product_code.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchCategory && matchBrand && matchSearch;
+    return matchCategory && matchBrand && matchStatus && matchSearch;
   });
 
   if (loading) return <div className="loading">Loading Products...</div>;
@@ -412,6 +436,11 @@ export default function Products() {
           <select className="filter-select" value={filterBrand} onChange={(e) => setFilterBrand(e.target.value)}>
             <option value="">All Brands</option>
             {uniqueBrands.map(brand => <option key={brand} value={brand}>{brand}</option>)}
+          </select>
+          <select className="filter-select" value={viewStatus} onChange={(e) => setViewStatus(e.target.value)}>
+            <option value="all">Show: All</option>
+            <option value="active">Show: Active</option>
+            <option value="inactive">Show: Inactive</option>
           </select>
           <button className="gold-solid-btn" onClick={openAddModal}>
             <Plus size={16}/> Add Product
@@ -459,8 +488,12 @@ export default function Products() {
                      <button className="action-icn" onClick={() => openEditModal(p)}>
                        <Edit2 size={16}/>
                      </button>
-                     <button className="action-icn" onClick={() => handleDelete(p.id)}>
-                       <Trash2 size={16}/>
+                     <button 
+                       className={`action-icn ${p.is_active ? 'active' : 'inactive'}`} 
+                       title={p.is_active ? 'Deactivate Product' : 'Activate Product'}
+                       onClick={() => handleToggleStatus(p.id, p.is_active)}
+                     >
+                       {p.is_active ? <CheckCircle2 size={16}/> : <XCircle size={16}/>}
                      </button>
                    </div>
                 </td>

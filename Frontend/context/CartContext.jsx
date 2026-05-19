@@ -54,11 +54,25 @@ export function CartProvider({ children }) {
     localStorage.setItem(cartKey, JSON.stringify(cartItems));
   }, [cartItems, cartKey]);
 
-  const [shippingDetails, setShippingDetails] = useState(null);
+  const [shippingDetails, setShippingDetails] = useState(() => {
+    try {
+      const stored = localStorage.getItem('chronos_shipping');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  const [shippingMethod, setShippingMethod] = useState(null);
+  const [shippingMethod, setShippingMethod] = useState(() => {
+    try {
+      const stored = localStorage.getItem('chronos_shipping_method');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  // Persist shipping details to localStorage (optional/temporary)
+  // Persist shipping details to localStorage
   useEffect(() => {
     if (shippingDetails) {
       localStorage.setItem('chronos_shipping', JSON.stringify(shippingDetails));
@@ -66,6 +80,15 @@ export function CartProvider({ children }) {
       localStorage.removeItem('chronos_shipping');
     }
   }, [shippingDetails]);
+
+  // Persist shipping method to localStorage
+  useEffect(() => {
+    if (shippingMethod) {
+      localStorage.setItem('chronos_shipping_method', JSON.stringify(shippingMethod));
+    } else {
+      localStorage.removeItem('chronos_shipping_method');
+    }
+  }, [shippingMethod]);
 
   const addToCart = useCallback((product) => {
     setCartItems((prev) => {
@@ -111,13 +134,13 @@ export function CartProvider({ children }) {
       })
     );
   }, []);
-
   const clearCart = useCallback(() => {
     setCartItems([]);
     setShippingDetails(null);
     setShippingMethod(null);
     localStorage.removeItem(cartKey);
     localStorage.removeItem('chronos_shipping');
+    localStorage.removeItem('chronos_shipping_method');
   }, [cartKey]);
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);

@@ -9,6 +9,7 @@ const MERCHANT_SECRET = process.env.MERCHANT_SECRET || "MTk1MTkwMDYyMzIyMjgxMzc4
 // POST /checkout
 export function checkout(req, res) {
   const { items, subtotal, discount, total, shippingDetails, shippingMethod, paymentMethod, email, accountId } = req.body;
+  console.log("[Checkout API] Placing order for email:", email || shippingDetails?.email);
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.json({ success: false, message: "No items in order" });
@@ -63,41 +64,56 @@ export function checkout(req, res) {
 // GET /api/user/orders
 export function getUserOrders(req, res) {
   const { email } = req.query;
+  console.log("[User API] Fetching orders for email:", email);
   if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
-  const sql = "SELECT * FROM orders WHERE email = ? ORDER BY created_at DESC";
+  const sql = "SELECT * FROM orders WHERE email = ? AND payment_status NOT IN ('Declined', 'Failed', 'Canceled') ORDER BY created_at DESC";
+  console.log("[User API] Executing SQL:", sql);
   db.query(sql, [email], (err, results) => {
     if (err) return res.status(500).json({ success: false, error: err.message });
+    console.log(`[User API] Found ${results.length} orders (Filtered Declined/Failed/Canceled)`);
     res.json({ success: true, orders: results });
   });
 }
 
 // POST /api/orders/update-payment-status
 export function updatePaymentStatus(req, res) {
-  const { orderId, status } = req.body;
-  if (!orderId || !status) return res.status(400).json({ success: false, message: "orderId and status required" });
-  const allowedStatuses = ["Pending", "Paid", "Canceled", "Failed", "Chargedback"];
+  const { orderId, order_id, status, decline_reason } = req.body;
+  const idToUse = orderId || order_id;
+
+  if (!idToUse) {
+    return res.status(400).json({ success: false, message: "orderId or order_id is required" });
+  }
+  if (!status) {
+    return res.status(400).json({ success: false, message: "status is required" });
+  }
+  
+  const allowedStatuses = ["Pending", "Paid", "Canceled", "Failed", "Declined", "Chargedback"];
   if (!allowedStatuses.includes(status)) {
-    return res.status(400).json({ success: false, message: "Invalid payment status" });
+    return res.status(400).json({ success: false, message: `Invalid payment status: ${status}. Allowed: ${allowedStatuses.join(", ")}` });
   }
 
-  db.query("SELECT * FROM orders WHERE id = ?", [orderId], (selErr, rows) => {
+  db.query("SELECT * FROM orders WHERE id = ?", [idToUse], (selErr, rows) => {
     if (selErr || rows.length === 0) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
     const order = rows[0];
-    const previousStatus = order.payment_status;
+
+    // If decline_reason is provided, log it
+    if (decline_reason && (status === "Failed" || status === "Declined")) {
+      console.log(`Payment declined for order ${idToUse}: ${decline_reason}`);
+    }
 
     const sql = "UPDATE orders SET payment_status = ? WHERE id = ?";
-    db.query(sql, [status, orderId], (err, result) => {
+    db.query(sql, [status, idToUse], (err, result) => {
       if (err) return res.status(500).json({ success: false, error: err.message });
-      
-      // If status changed to 'Paid', trigger side effects
-      if (status === "Paid" && previousStatus !== "Paid") {
-        triggerPaidOrderSideEffects(orderId, order);
+
+      // Trigger side-effects if status changed to 'Paid'
+      if (status === "Paid" && order.payment_status !== "Paid") {
+        triggerPaidOrderSideEffects(idToUse, order);
       }
-      
-      res.json({ success: true, message: "Status updated" });
+
+      res.json({ success: true, message: `Status updated to ${status}` });
     });
   });
 }
@@ -112,7 +128,16 @@ export function generatePayhereHash(req, res) {
   const dataToHash = MERCHANT_ID + order_id + formattedAmount + currency + merchantSecretHash;
   const hash = crypto.createHash("md5").update(dataToHash).digest("hex").toUpperCase();
 
-  res.json({ hash, merchant_id: MERCHANT_ID });
+  let publicUrl = process.env.PUBLIC_URL || "";
+  if (publicUrl.endsWith("/")) {
+    publicUrl = publicUrl.slice(0, -1);
+  }
+
+  const notifyUrl = publicUrl 
+    ? `${publicUrl}/payhere-notify` 
+    : "http://localhost:5000/payhere-notify";
+
+  res.json({ hash, merchant_id: MERCHANT_ID, notify_url: notifyUrl });
 }
 
 // POST /payhere-notify
@@ -133,7 +158,7 @@ export function payhereNotify(req, res) {
     if (status_code == 2) payment_status = "Paid";
     else if (status_code == 0) payment_status = "Pending";
     else if (status_code == -1) payment_status = "Canceled";
-    else if (status_code == -2) payment_status = "Failed";
+    else if (status_code == -2) payment_status = "Declined";
     else if (status_code == -3) payment_status = "Chargedback";
 
     db.query("SELECT * FROM orders WHERE id = ?", [order_id], (selErr, orderRows) => {
@@ -157,6 +182,8 @@ export function payhereNotify(req, res) {
           }
         }
       });
+
+      // We no longer delete failed/canceled orders so they remain visible in the admin panel.
     });
   } else {
     console.log("Invalid MD5 signature");
@@ -256,10 +283,32 @@ function triggerPaidOrderSideEffects(orderId, order) {
 
         // If we couldn't fully deduct, DO NOT over-decrement stock_quantity.
         const newTotalStock = Math.max(0, (Number(product.stock_quantity) || 0) - deductedTotal);
+        
+        // Recalculate active price from updated tiers to keep 'price' column in sync for the website/admin
+        let activePrice = product.price;
+        if (Array.isArray(tiers) && tiers.length > 0) {
+          let priceSet = false;
+          for (const t of tiers) {
+            const tStock = (typeof t.stock === 'object' && t.stock !== null) 
+              ? Object.values(t.stock).reduce((a, b) => a + (Number(b) || 0), 0)
+              : (Number(t.stock) || 0);
+            if (tStock > 0) {
+              activePrice = t.price;
+              priceSet = true;
+              break;
+            }
+          }
+          if (!priceSet && tiers.length > 0) {
+            activePrice = tiers[tiers.length - 1].price;
+          }
+        }
+        const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
         try {
-          await queryAsync("UPDATE products SET stock_quantity = ?, inventory_tiers = ? WHERE id = ?", [
+          await queryAsync("UPDATE products SET stock_quantity = ?, inventory_tiers = ?, price = ? WHERE id = ?", [
             newTotalStock,
             JSON.stringify(tiers),
+            finalPrice,
             item.id,
           ]);
           checkLowStock(item.id, product.name, newTotalStock);
@@ -335,4 +384,60 @@ function triggerPaidOrderSideEffects(orderId, order) {
       }
     });
   }
+}
+
+// DELETE /api/user/orders/:orderId - Delete/cancel failed orders (for payment declines)
+export function deleteUserOrder(req, res) {
+  const { orderId } = req.params;
+  
+  if (!orderId) {
+    return res.status(400).json({ success: false, message: "Order ID is required" });
+  }
+
+  db.query("SELECT * FROM orders WHERE id = ?", [orderId], (selErr, rows) => {
+    if (selErr || rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    const order = rows[0];
+    
+    // Only allow deletion of failed/pending orders (not completed transactions)
+    const allowedStatuses = ['Pending', 'Failed', 'Canceled'];
+    if (!allowedStatuses.includes(order.payment_status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot delete order with payment status: ${order.payment_status}` 
+      });
+    }
+
+    // Delete the order
+    db.query("DELETE FROM orders WHERE id = ?", [orderId], (delErr, result) => {
+      if (delErr) {
+        console.error("Error deleting order:", delErr);
+        return res.status(500).json({ success: false, message: "Failed to delete order" });
+      }
+
+      res.json({ success: true, message: "Order has been deleted successfully" });
+    });
+  });
+}
+
+// GET /api/orders/:orderId/status
+export function getOrderStatus(req, res) {
+  const { orderId } = req.params;
+  
+  if (!orderId) {
+    return res.status(400).json({ success: false, message: "Order ID is required" });
+  }
+
+  db.query("SELECT payment_status FROM orders WHERE id = ?", [orderId], (err, rows) => {
+    if (err) {
+      console.error("Error checking order status:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    res.json({ success: true, status: rows[0].payment_status });
+  });
 }
