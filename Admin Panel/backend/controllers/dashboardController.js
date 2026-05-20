@@ -5,7 +5,7 @@ exports.getDashboardStats = async (req, res) => {
   try {
     // 1. Core Stats
     const [revResult] = await pool.query(
-      'SELECT COALESCE(SUM(total), 0) as total_revenue FROM orders WHERE order_status != "Canceled" AND payment_status = "Paid"'
+      'SELECT COALESCE(SUM(total), 0) as total_revenue FROM orders WHERE payment_status = "Paid"'
     );
     const totalRevenue = revResult[0].total_revenue || 0;
 
@@ -36,7 +36,7 @@ exports.getDashboardStats = async (req, res) => {
 
     // 3. Top Products
     const [itemRows] = await pool.query(
-      'SELECT items FROM orders WHERE (order_status != "Canceled" OR order_status IS NULL) LIMIT 200'
+      'SELECT items FROM orders WHERE payment_status = "Paid" LIMIT 200'
     );
     const productSales = {};
     itemRows.forEach(row => {
@@ -67,7 +67,6 @@ exports.getDashboardStats = async (req, res) => {
       FROM orders 
       WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
         AND payment_status = 'Paid'
-        AND (order_status != 'Canceled' OR order_status IS NULL)
       GROUP BY DATE_FORMAT(created_at, '%b'), MONTH(created_at)
       ORDER BY YEAR(created_at), MONTH(created_at)
     `);

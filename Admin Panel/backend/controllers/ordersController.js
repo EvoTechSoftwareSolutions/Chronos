@@ -224,6 +224,11 @@ exports.updateOrderStatus = async (req, res) => {
     }
     const order = rows[0];
 
+    // Guard: cannot update frozen (deactivated) orders
+    if (order.is_active === 0 || order.is_active === false) {
+      return res.status(400).json({ error: 'This order is deactivated and frozen. You cannot change its details.' });
+    }
+
     const nextOrderStatus = normalizeCanceled(order_status);
     const nextPaymentStatus = payment_status ? normalizeCanceled(payment_status) : order.payment_status;
 
@@ -267,104 +272,106 @@ exports.updateOrderStatus = async (req, res) => {
       // and persist to DB.
       order.items = JSON.stringify(parsedItems);
       await pool.query('UPDATE orders SET items = ? WHERE id = ?', [order.items, cleanId]);
-
-      // Update customer revenue (if email exists)
-      if (order.email) {
-        await pool.query(
-          'UPDATE customers SET orders_count = orders_count + 1, total_spent = total_spent + ?, status = \'Active\' WHERE email = ?',
-          [Number(order.total) || 0, order.email]
-        );
-      }
     }
 
-    // --- Stock and Revenue Restoration Logic (Canceling a paid order) ---
+    // --- Stock Restoration Logic (Canceling a paid order) ---
     // RESTORE stock if:
     // 1. Order status changed to 'Canceled' AND it was previously Paid (and not already Canceled)
     // 2. OR Payment status changed FROM 'Paid' to something else (though this is rare in admin)
     const shouldRestore = (!wasCanceled && isCanceled(nextOrderStatus) && isNowPaid) || (wasPaid && !isNowPaid && !wasCanceled);
 
     if (shouldRestore) {
-      // Only restore if it wasn't already delivered/shipped (optional safety, keeping as per previous logic)
-      if (order.order_status !== 'Delivered' && order.order_status !== 'Shipped') {
-        let parsedItems = [];
-        try { parsedItems = JSON.parse(order.items || '[]'); } catch (e) {}
+      let parsedItems = [];
+      try { parsedItems = JSON.parse(order.items || '[]'); } catch (e) {}
 
-        for (const item of parsedItems) {
-          if (item.id && item.quantity) {
-            // Fetch product to get inventory_tiers
-            const [productRows] = await pool.query('SELECT * FROM products WHERE id = ?', [item.id]);
-            if (productRows.length > 0) {
-              const product = productRows[0];
-              let tiers = [];
-              try {
-                if (product.inventory_tiers) {
-                  tiers = typeof product.inventory_tiers === 'string' ? JSON.parse(product.inventory_tiers) : product.inventory_tiers;
-                }
-              } catch (e) { console.error("Restore stock parse error", e); }
-
-              if (Array.isArray(tiers) && tiers.length > 0) {
-                // Restore to the exact tiers that were consumed (if tracked), otherwise fall back to first tier.
-                const itemAllocations = item.stock_allocations || item.stockAllocations;
-                if (itemAllocations && itemAllocations.length > 0) {
-                  let restored = 0;
-                  for (const a of itemAllocations) {
-                    const tierIndex = Number(a.tierIndex);
-                    const qty = Number(a.quantity) || 0;
-                    const size = a.strapSize || item.strap_size || item.strapSize;
-                    if (qty <= 0) continue;
-                    if (!ensureTierExists(tiers, tierIndex)) continue;
-                    addTierStock(tiers[tierIndex], qty, size);
-                    restored += qty;
-                  }
-
-                  // Recalculate active price from tiers
-                  let activePrice = product.price;
-                  let priceSet = false;
-                  for (const t of tiers) {
-                    if (sumTierStockValue(t.stock) > 0) {
-                      activePrice = t.price;
-                      priceSet = true;
-                      break;
-                    }
-                  }
-                  if (!priceSet && tiers.length > 0) activePrice = tiers[tiers.length - 1].price;
-                  const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
-
-                  await pool.query(
-                    'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ?, price = ? WHERE id = ?',
-                    [restored, JSON.stringify(tiers), finalPrice, item.id]
-                  );
-                } else {
-                  addTierStock(tiers[0], item.quantity, item.strap_size || item.strapSize);
-
-                  // Recalculate active price from tiers
-                  let activePrice = product.price;
-                  let priceSet = false;
-                  for (const t of tiers) {
-                    if (sumTierStockValue(t.stock) > 0) {
-                      activePrice = t.price;
-                      priceSet = true;
-                      break;
-                    }
-                  }
-                  if (!priceSet && tiers.length > 0) activePrice = tiers[tiers.length - 1].price;
-                  const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
-
-                  await pool.query(
-                    'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ?, price = ? WHERE id = ?',
-                    [item.quantity, JSON.stringify(tiers), finalPrice, item.id]
-                  );
-                }
-              } else {
-                await pool.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.id]);
+      for (const item of parsedItems) {
+        if (item.id && item.quantity) {
+          // Fetch product to get inventory_tiers
+          const [productRows] = await pool.query('SELECT * FROM products WHERE id = ?', [item.id]);
+          if (productRows.length > 0) {
+            const product = productRows[0];
+            let tiers = [];
+            try {
+              if (product.inventory_tiers) {
+                tiers = typeof product.inventory_tiers === 'string' ? JSON.parse(product.inventory_tiers) : product.inventory_tiers;
               }
+            } catch (e) { console.error("Restore stock parse error", e); }
+
+            if (Array.isArray(tiers) && tiers.length > 0) {
+              // Restore to the exact tiers that were consumed (if tracked), otherwise fall back to first tier.
+              const itemAllocations = item.stock_allocations || item.stockAllocations;
+              if (itemAllocations && itemAllocations.length > 0) {
+                let restored = 0;
+                for (const a of itemAllocations) {
+                  const tierIndex = Number(a.tierIndex);
+                  const qty = Number(a.quantity) || 0;
+                  const size = a.strapSize || item.strap_size || item.strapSize;
+                  if (qty <= 0) continue;
+                  if (!ensureTierExists(tiers, tierIndex)) continue;
+                  addTierStock(tiers[tierIndex], qty, size);
+                  restored += qty;
+                }
+
+                // Recalculate active price from tiers
+                let activePrice = product.price;
+                let priceSet = false;
+                for (const t of tiers) {
+                  if (sumTierStockValue(t.stock) > 0) {
+                    activePrice = t.price;
+                    priceSet = true;
+                    break;
+                  }
+                }
+                if (!priceSet && tiers.length > 0) activePrice = tiers[tiers.length - 1].price;
+                const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
+                await pool.query(
+                  'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ?, price = ? WHERE id = ?',
+                  [restored, JSON.stringify(tiers), finalPrice, item.id]
+                );
+              } else {
+                addTierStock(tiers[0], item.quantity, item.strap_size || item.strapSize);
+
+                // Recalculate active price from tiers
+                let activePrice = product.price;
+                let priceSet = false;
+                for (const t of tiers) {
+                  if (sumTierStockValue(t.stock) > 0) {
+                    activePrice = t.price;
+                    priceSet = true;
+                    break;
+                  }
+                }
+                if (!priceSet && tiers.length > 0) activePrice = tiers[tiers.length - 1].price;
+                const finalPrice = "Rs " + Number(String(activePrice).replace(/[^0-9.]/g, '') || 0).toLocaleString();
+
+                await pool.query(
+                  'UPDATE products SET stock_quantity = stock_quantity + ?, inventory_tiers = ?, price = ? WHERE id = ?',
+                  [item.quantity, JSON.stringify(tiers), finalPrice, item.id]
+                );
+              }
+            } else {
+              await pool.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.id]);
             }
           }
         }
+      }
+    }
 
-        if (order.email) {
-          await pool.query('UPDATE customers SET orders_count = GREATEST(0, orders_count - 1), total_spent = GREATEST(0, total_spent - ?) WHERE email = ?', [order.total, order.email]);
-        }
+    // --- Decoupled Customer Revenue and Spend Updates (Purely based on payment status changes) ---
+    if (order.email) {
+      if (isNowPaid && !wasPaid) {
+        // Increment customer stats since payment became Paid
+        await pool.query(
+          'UPDATE customers SET orders_count = orders_count + 1, total_spent = total_spent + ?, status = \'Active\' WHERE email = ?',
+          [Number(order.total) || 0, order.email]
+        );
+      } else if (wasPaid && !isNowPaid) {
+        // Decrement customer stats since payment was changed from Paid to something else
+        await pool.query(
+          'UPDATE customers SET orders_count = GREATEST(0, orders_count - 1), total_spent = GREATEST(0, total_spent - ?) WHERE email = ?',
+          [Number(order.total) || 0, order.email]
+        );
       }
     }
 
@@ -398,6 +405,12 @@ exports.deleteOrder = async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM orders WHERE id = ?', [cleanId]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const order = rows[0];
+    // Guard: cannot delete frozen (deactivated) orders
+    if (order.is_active === 0 || order.is_active === false) {
+      return res.status(400).json({ success: false, error: 'This order is deactivated and frozen. You cannot delete it.' });
     }
 
     // Delete only — no stock restocking, no revenue adjustment

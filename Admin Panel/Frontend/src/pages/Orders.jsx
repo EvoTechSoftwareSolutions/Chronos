@@ -193,8 +193,15 @@ export default function Orders() {
           <tbody>
             {filteredOrders.length > 0 ? (
               filteredOrders.map(order => (
-                <tr key={order.id}>
-                  <td className="id-col">{order.id}</td>
+                <tr key={order.id} className={!order.is_active ? 'frozen-row' : ''}>
+                  <td className="id-col" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {order.id}
+                    {!order.is_active && (
+                      <span className="frozen-tag">
+                        FROZEN
+                      </span>
+                    )}
+                  </td>
                   <td className="id-col">
                     <span className={`id-badge ${String(order.customer_id || '').startsWith('ACC-') ? 'account' : 'guest'}`}>
                       {order.customer_id || 'N/A'}
@@ -223,6 +230,7 @@ export default function Orders() {
                       className={`status-select-badge ${order.status.toLowerCase()}`}
                       value={order.status}
                       onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                      disabled={!order.is_active}
                     >
                       <option value="Pending">Pending</option>
                       <option value="Shipped" disabled={!canShipDeliver}>Shipped</option>
@@ -262,7 +270,14 @@ export default function Orders() {
         <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
           <div className="modal-content order-detail-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Order Details <span className="gold-text">{selectedOrder.id}</span></h2>
+              <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                Order Details <span className="gold-text">{selectedOrder.id}</span>
+                {!selectedOrder.is_active && (
+                  <span className="frozen-tag modal-frozen-tag">
+                    FROZEN
+                  </span>
+                )}
+              </h2>
               <button className="close-btn" onClick={() => setSelectedOrder(null)}><X size={24}/></button>
             </div>
             
@@ -347,6 +362,7 @@ export default function Orders() {
                             className={`status-select-badge ${selectedOrder.payment_status?.toLowerCase() || 'pending'}`}
                             value={selectedOrder.payment_status || 'Pending'}
                             onChange={(e) => handlePaymentStatusUpdate(selectedOrder.id, e.target.value)}
+                            disabled={!selectedOrder.is_active}
                           >
                             <option value="Paid">Paid</option>
                             <option value="Pending">Pending</option>
@@ -367,6 +383,7 @@ export default function Orders() {
                             className={`status-select-badge ${selectedOrder.status.toLowerCase()}`}
                             value={selectedOrder.status}
                             onChange={(e) => handleStatusUpdate(selectedOrder.id, e.target.value)}
+                            disabled={!selectedOrder.is_active}
                           >
                             <option value="Pending">Pending</option>
                             <option value="Shipped" disabled={!canShipDeliver}>Shipped</option>
