@@ -232,6 +232,14 @@ exports.updateOrderStatus = async (req, res) => {
     const nextOrderStatus = normalizeCanceled(order_status);
     const nextPaymentStatus = payment_status ? normalizeCanceled(payment_status) : order.payment_status;
 
+    // Guard: cannot cancel order unless payment status is pending, held, delayed, failed, canceled, or refunded (refund)
+    const allowedCancelPaymentStatuses = ['Pending', 'Held', 'Delayed', 'Failed', 'Canceled', 'Cancelled', 'Refund', 'Refunded'];
+    if (isCanceled(nextOrderStatus) && !allowedCancelPaymentStatuses.some(status => String(nextPaymentStatus || '').trim().toLowerCase() === status.toLowerCase())) {
+      return res.status(400).json({
+        error: 'Cannot cancel order with payment status Paid or invalid status for cancellation',
+      });
+    }
+
     // Guard: cannot mark Shipped/Delivered unless payment is Paid
     if ((nextOrderStatus === 'Shipped' || nextOrderStatus === 'Delivered') && !isPaid(nextPaymentStatus)) {
       return res.status(400).json({

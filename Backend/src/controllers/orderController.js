@@ -401,9 +401,9 @@ export function deleteUserOrder(req, res) {
 
     const order = rows[0];
     
-    // Only allow deletion of failed/pending orders (not completed transactions)
-    const allowedStatuses = ['Pending', 'Failed', 'Canceled'];
-    if (!allowedStatuses.includes(order.payment_status)) {
+    // Only allow deletion of failed/pending/canceled/refunded orders (not completed transactions like Paid)
+    const allowedStatuses = ['Pending', 'Held', 'Delayed', 'Failed', 'Canceled', 'Cancelled', 'Refund', 'Refunded'];
+    if (!allowedStatuses.some(status => String(order.payment_status || '').trim().toLowerCase() === status.toLowerCase())) {
       return res.status(400).json({ 
         success: false, 
         message: `Cannot delete order with payment status: ${order.payment_status}` 

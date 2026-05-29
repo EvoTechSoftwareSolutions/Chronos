@@ -254,10 +254,27 @@ export function updateAdminOrder(req, res) {
 
   const numericId = id.replace("ORD-", "");
 
-  const sql = "UPDATE orders SET order_status = ? WHERE id = ?";
-  db.query(sql, [order_status, numericId], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ success: true });
+  db.query("SELECT * FROM orders WHERE id = ?", [numericId], (selErr, rows) => {
+    if (selErr || rows.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    const order = rows[0];
+
+    const isCanceled = (val) => String(val || "").trim().toLowerCase() === "canceled" || String(val || "").trim().toLowerCase() === "cancelled";
+    
+    // Guard: cannot cancel order unless payment status is pending, held, delayed, failed, canceled, or refunded (refund)
+    const allowedCancelPaymentStatuses = ["Pending", "Held", "Delayed", "Failed", "Canceled", "Cancelled", "Refund", "Refunded"];
+    if (isCanceled(order_status) && !allowedCancelPaymentStatuses.some(status => String(order.payment_status || "").trim().toLowerCase() === status.toLowerCase())) {
+      return res.status(400).json({
+        error: "Cannot cancel order with payment status Paid or invalid status for cancellation",
+      });
+    }
+
+    const sql = "UPDATE orders SET order_status = ? WHERE id = ?";
+    db.query(sql, [order_status, numericId], (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    });
   });
 }
 

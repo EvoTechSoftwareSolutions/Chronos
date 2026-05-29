@@ -16,6 +16,9 @@ export default function Orders() {
   const { showModal } = useModal();
 
   const isPaid = (value) => String(value || '').trim() === 'Paid';
+  const allowedCancelPaymentStatuses = ['pending', 'held', 'delayed', 'failed', 'canceled', 'cancelled', 'refund', 'refunded'];
+  const canCancel = (paymentStatus) => 
+    allowedCancelPaymentStatuses.includes(String(paymentStatus || '').trim().toLowerCase());
 
   const fetchOrders = () => {
     apiFetch('/api/admin/orders')
@@ -235,7 +238,7 @@ export default function Orders() {
                       <option value="Pending">Pending</option>
                       <option value="Shipped" disabled={!canShipDeliver}>Shipped</option>
                       <option value="Delivered" disabled={!canShipDeliver}>Delivered</option>
-                      <option value="Canceled">Canceled</option>
+                      <option value="Canceled" disabled={!canCancel(order.payment_status)}>Canceled</option>
                     </select>
                       );
                     })()}
@@ -388,7 +391,7 @@ export default function Orders() {
                             <option value="Pending">Pending</option>
                             <option value="Shipped" disabled={!canShipDeliver}>Shipped</option>
                             <option value="Delivered" disabled={!canShipDeliver}>Delivered</option>
-                            <option value="Canceled">Canceled</option>
+                            <option value="Canceled" disabled={!canCancel(selectedOrder.payment_status)}>Canceled</option>
                           </select>
                             );
                           })()}
